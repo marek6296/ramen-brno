@@ -1,0 +1,19 @@
+# závislosti
+/node_modules
+
+# build
+/.next
+/out
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# vercel (obsahuje projectId/orgId tohto stroja)
+.vercel
+
+# systém
+.DS_Store
+*.log
+
+# lokálne env (zatiaľ žiadne netreba — API je verejné, bez tokenu)
+.env
+.env*.local
