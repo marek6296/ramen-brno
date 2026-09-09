@@ -255,9 +255,13 @@ export async function getMenu(): Promise<MenuData> {
   // brať len z prvého by niektoré zahodilo). Položky za 0 Kč necháme — pri
   // povinnej voľbe je práve tá nulová tou základnou (RAMEN NUDLE naší výroby).
   //
-  // Skupiny viazané na jedno jediné jedlo (napr. EDAMAME, veggie) do spoločného
-  // boxu nepatria — platia len pre to jedlo, na tabuli by mýlili.
-  type Agg = OptionGroup & { dishCount: number };
+  // O zobrazení sekcie rozhoduje to, či sada patrí k hlavnej kategórii (ramenom)
+  // — teda či naozaj platí „k akejkoľvek miske". CENY do toho nevstupujú:
+  // keď klient vypne jednu položku (napr. rýžové nudle), sekcia musí ostať
+  // a zmizne len tá jedna položka. Sekcia zmizne až vtedy, keď klient vypne
+  // celú sadu alebo v nej nezostane nič.
+  const mainDishIds = new Set((mainGroup?.dishes ?? []).map((d) => d.id));
+  type Agg = OptionGroup & { onMain: boolean };
   const agg = new Map<string, Agg>();
   for (const d of dishes) {
     for (const g of d.options) {
@@ -266,26 +270,23 @@ export async function getMenu(): Promise<MenuData> {
       const key = g.name.trim().toLowerCase();
       const existing = agg.get(key);
       if (existing) {
-        existing.dishCount++;
+        existing.onMain = existing.onMain || mainDishIds.has(d.id);
         for (const it of g.items) {
           if (!existing.items.some((x) => x.name === it.name)) existing.items.push(it);
         }
       } else {
-        agg.set(key, { ...g, items: [...g.items], dishCount: 1 });
+        agg.set(key, {
+          ...g,
+          items: [...g.items],
+          onMain: mainDishIds.has(d.id),
+        });
       }
     }
   }
-  // Do spoločného boxu pustíme skupinu, ak:
-  //   - má aspoň jednu platenú položku  (to sú skutočné prídavky/voľby), ALEBO
-  //   - sa opakuje aspoň pri dvoch jedlách (všeobecná voľba bez príplatku).
-  //
-  // Samotný počet jedál nestačí: klient v ChoiceQR sady pripája postupne a
-  // chvíľu ich má len pri jednom jedle — vtedy by prídavky z tabule zmizli.
-  // Naopak skupiny ako EDAMAME (SEZAM zadarmo) či veggie sú viazané na jedno
-  // konkrétne jedlo a bez platenej položky, takže sem nepatria.
-  const shared = [...agg.values()].filter(
-    (g) => g.items.some((i) => i.price > 0) || g.dishCount >= 2
-  );
+  // Sady pripnuté len k jedlám mimo hlavnej kategórie (napr. voľba dochutenia
+  // pri chuťovke) sem nepatria — platia len pre to jedlo a na spoločnej tabuli
+  // by mýlili.
+  const shared = [...agg.values()].filter((g) => g.onMain);
 
   // povinná voľba (napr. druh nudlí) dostane vlastnú sekciu,
   // nepovinné doplnky idú do boxu PŘÍDAVKY
