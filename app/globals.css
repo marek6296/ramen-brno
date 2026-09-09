@@ -939,3 +939,9 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
 
 /* alergény: vždy samostatný riadok pod štítkami */
 .meta--alg { margin-top: 0.3vh; }
+
+/* Počet riadkov popisu v krajných stĺpcoch riadi FitColumn — keď sa položky
+   nezmestia, radšej skráti popis, než by mal text spadnúť pod čitateľnú
+   veľkosť alebo by sa posledná položka odrezala. */
+.col--narrow .desc    { -webkit-line-clamp: var(--cz-lines, 4); }
+.col--narrow .desc-en { -webkit-line-clamp: var(--en-lines, 2); }

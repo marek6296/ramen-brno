@@ -324,6 +324,20 @@ function FullscreenButton() {
  *
  * Beží len pri zmene dát / rozmerov, nie každý snímok — na TV to nič nestojí.
  */
+/**
+ * Úrovne úspory miesta v krajných stĺpcoch, od najšetrnejšej. `spodok` je
+ * najmenšie písmo, pri ktorom sme ochotní na danej úrovni ostať.
+ */
+const UROVNE = [
+  { cz: 4, en: 2, spodok: 0.86 },
+  { cz: 3, en: 2, spodok: 0.78 },
+  { cz: 2, en: 1, spodok: 0.55 },
+];
+// Pozn.: do úzkeho stĺpca sa takto zmestí až šesť položiek (dohodnuté maximum
+// klienta). Osem sa doň nevojde ani po zmenšení na 40 % — vtedy už nejde
+// o sadzbu, ale o to, že sa doň dostala nesprávna kategória. Rieši sa to
+// inak než zmenšovaním, tak sa netvárime, že to zmenšovanie zachráni.
+
 function FitColumn({
   children,
   signature,
@@ -339,13 +353,24 @@ function FitColumn({
     if (!el) return;
 
     const fit = () => {
-      el.style.setProperty("--fit", "1");
-      let s = 1;
-      // 16 krokov po 3,5 % => v najhoršom prípade zmenší na 60 %
-      for (let i = 0; i < 16 && el.scrollHeight > el.clientHeight + 1; i++) {
-        s = Math.round((s - 0.035) * 1000) / 1000;
-        if (s < 0.6) break;
-        el.style.setProperty("--fit", String(s));
+      const pretecie = () => el.scrollHeight > el.clientHeight + 1;
+
+      // Postupujeme po úrovniach: najprv sa snažíme len zmenšiť a nechať popisy
+      // celé; až keď by písmo spadlo pod čitateľnú mieru, skrátime popisy
+      // a začneme znova od plnej veľkosti. Čitateľný text s kratším popisom
+      // je na TV lepší než drobné písmo — a nadovšetko platí, že sa musia
+      // zmestiť VŠETKY položky. Predtým sa zmenšovanie zastavilo na hranici
+      // a šiesta chuťovka sa jednoducho odrezala.
+      for (const u of UROVNE) {
+        el.style.setProperty("--cz-lines", String(u.cz));
+        el.style.setProperty("--en-lines", String(u.en));
+        el.style.setProperty("--fit", "1");
+        let s = 1;
+        while (s > u.spodok && pretecie()) {
+          s = Math.round((s - 0.02) * 1000) / 1000;
+          el.style.setProperty("--fit", String(s));
+        }
+        if (!pretecie()) return;
       }
     };
 
