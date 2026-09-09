@@ -275,7 +275,17 @@ export async function getMenu(): Promise<MenuData> {
       }
     }
   }
-  const shared = [...agg.values()].filter((g) => g.dishCount >= 2);
+  // Do spoločného boxu pustíme skupinu, ak:
+  //   - má aspoň jednu platenú položku  (to sú skutočné prídavky/voľby), ALEBO
+  //   - sa opakuje aspoň pri dvoch jedlách (všeobecná voľba bez príplatku).
+  //
+  // Samotný počet jedál nestačí: klient v ChoiceQR sady pripája postupne a
+  // chvíľu ich má len pri jednom jedle — vtedy by prídavky z tabule zmizli.
+  // Naopak skupiny ako EDAMAME (SEZAM zadarmo) či veggie sú viazané na jedno
+  // konkrétne jedlo a bez platenej položky, takže sem nepatria.
+  const shared = [...agg.values()].filter(
+    (g) => g.items.some((i) => i.price > 0) || g.dishCount >= 2
+  );
 
   // povinná voľba (napr. druh nudlí) dostane vlastnú sekciu,
   // nepovinné doplnky idú do boxu PŘÍDAVKY
