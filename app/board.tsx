@@ -391,6 +391,8 @@ export default function Board({ initial }: { initial: MenuData }) {
           <span className="brandmark">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className="logo" src="/logo.png" alt="Ramen Brno" />
+            {/* odlesk – prejde cez logo každých ~6 s, orezaný maskou na tvar loga */}
+            <span className="gleam" aria-hidden="true" />
           </span>
           <span className="kana">ラーメン</span>
           <span className="sub">Václavská · Brno</span>
