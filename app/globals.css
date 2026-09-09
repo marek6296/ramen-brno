@@ -893,3 +893,123 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
 
 /* alergény: vždy samostatný riadok pod štítkami */
 .meta--alg { margin-top: 0.3vh; }
+
+
+
+
+/* ================================================================
+   LOGO SA ODTLÁČA AKO RAZÍTKO
+   Odznak je pečať — tak sa aj správa. Raz za 15 s sa nadvihne,
+   rýchlo klesne, pri dopade sa stlačí o podklad, mierne odskočí
+   a dokmitá sa do pokoja.
+
+   Hýbe sa samotný odznak (translate + scale), žiadny efekt na ňom.
+   Iba transform => GPU kompozitor, bez prekresľovania — dôležité
+   pri 10 h dennej prevádzke na TV.
+================================================================= */
+
+/* staré efekty preč — beží len razítko */
+.brand .logo { animation: none; }
+.gleam { display: none; }
+
+.brandmark {
+  /* stláča sa smerom NADOL, preto je os blízko spodku kruhu;
+     45,1 % je stred čierneho kruhu (paličky trčia doľava) */
+  transform-origin: 45.1% 88%;
+  animation: logo-stamp 15s linear infinite;
+  will-change: transform;
+}
+
+@keyframes logo-stamp {
+  /* pokoj */
+  0%, 88%   { transform: translateY(0) scale(1, 1);
+              animation-timing-function: cubic-bezier(.3,.7,.5,1); }
+  /* nadvihnutie — nádych pred úderom */
+  90.4%     { transform: translateY(-1.7vh) scale(1.035, 1.03);
+              animation-timing-function: cubic-bezier(.55,0,.85,.5); }
+  /* ÚDER: rýchlo dole a stlačí sa o podklad */
+  92.2%     { transform: translateY(0.85vh) scale(1.11, .89);
+              animation-timing-function: cubic-bezier(.25,.75,.45,1); }
+  /* uvoľnenie stlačenia */
+  93.5%     { transform: translateY(0.15vh) scale(1.03, .975);
+              animation-timing-function: cubic-bezier(.4,0,.6,1); }
+  /* odskok */
+  95%       { transform: translateY(-0.65vh) scale(.985, 1.025);
+              animation-timing-function: cubic-bezier(.35,.7,.5,1); }
+  96.4%     { transform: translateY(0.16vh) scale(1.012, .99);
+              animation-timing-function: cubic-bezier(.4,0,.6,1); }
+  97.6%     { transform: translateY(-0.14vh) scale(.996, 1.006);
+              animation-timing-function: cubic-bezier(.35,.7,.5,1); }
+  98.7%     { transform: translateY(0.05vh) scale(1.003, .998);
+              animation-timing-function: ease-out; }
+  99.6%, 100% { transform: translateY(0) scale(1, 1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brandmark { animation: none; }
+}
+
+/* ================================================================
+   KRAJNÉ STĹPCE BEZ FOTIEK
+   Fotky ostávajú len v strednom ramen bloku. Krajné stĺpce tým získali
+   späť celú šírku — predchádzajúce pravidlá im uberali z písma aj
+   odsadenia práve preto, aby sa vedľa textu vošiel náhľad.
+   Tu to vraciame do čitateľnej podoby.
+================================================================= */
+
+/* späť plné odsadenie (bolo stiahnuté kvôli miestu na fotku) */
+.col--narrow { padding-left: 2.2vh; padding-right: 2.2vh; }
+
+/* text môže byť zase väčší */
+.col--narrow .dish .name    { font-size: 2.05vh; line-height: 1.16; }
+.col--narrow .dish .price   { font-size: 2.05vh; }
+.col--narrow .dish .name-en { font-size: 1.25vh; }
+.col--narrow .desc          { font-size: 1.5vh;  -webkit-line-clamp: 4; }
+.col--narrow .desc-en       { font-size: 1.28vh; -webkit-line-clamp: 3; }
+
+/* nadpisy sekcií tiež o kúsok väčšie */
+.col--narrow .sec h2        { font-size: 2.45vh; }
+.col--narrow .sec--sub h2   { font-size: 2.25vh; }
+
+/* vzdušnejšie rozostupy medzi položkami aj vo vnútri nich */
+.col--narrow .list          { gap: 2vh; }
+.col--narrow .dish .desc    { margin-top: 0.6vh; }
+.col--narrow .meta          { gap: 0.7vh; margin-top: 0.5vh; }
+.col--narrow .tag           { font-size: 0.88vh; padding: 0.22vh 0.6vh; }
+
+/* poistka: keby v dátach fotka bola, v krajných stĺpcoch sa nezobrazí */
+.col--narrow .dish .photo   { display: none; }
+.col--narrow .dish          { grid-template-columns: 1fr auto; }
+
+/* nová kategória v krajnom stĺpci potrebuje odstup od predošlej,
+   inak nadpis lepí na posledné jedlo tej pred ním */
+.col--narrow .sec--sub { margin-top: 1.7vh; }
+
+/* ================================================================
+   SAMOPRISPÔSOBENIE KRAJNÝCH STĹPCOV
+   Klient môže v ChoiceQR položky pridávať aj uberať. Skript odmeria
+   skutočnú výšku obsahu a nastaví `--fit` (1 = plná veľkosť, min 0,6).
+   Všetky rozmery v týchto stĺpcoch sa ním násobia, takže sa zmenší
+   text aj rozostupy naraz a nič nevypadne.
+================================================================= */
+
+.col--narrow .dish .name    { font-size: calc(2.05vh * var(--fit, 1)); }
+.col--narrow .dish .price   { font-size: calc(2.05vh * var(--fit, 1)); }
+.col--narrow .dish .name-en { font-size: calc(1.25vh * var(--fit, 1)); }
+.col--narrow .desc          { font-size: calc(1.5vh  * var(--fit, 1)); }
+.col--narrow .desc-en       { font-size: calc(1.28vh * var(--fit, 1)); }
+.col--narrow .sec h2        { font-size: calc(2.45vh * var(--fit, 1)); }
+.col--narrow .sec--sub h2   { font-size: calc(2.25vh * var(--fit, 1)); }
+
+.col--narrow .list          { gap: calc(2vh * var(--fit, 1)); }
+.col--narrow .sec--sub      { margin-top: calc(1.7vh * var(--fit, 1)); }
+.col--narrow .dish .desc    { margin-top: calc(0.6vh * var(--fit, 1)); }
+.col--narrow .meta          { gap: calc(0.7vh * var(--fit, 1));
+                              margin-top: calc(0.5vh * var(--fit, 1)); }
+.col--narrow .tag           { font-size: calc(0.88vh * var(--fit, 1)); }
+
+/* prídavky v pravom stĺpci sa zmenšujú tiež, nech je to celé konzistentné */
+.col--narrow .extras        { padding: calc(1.2vh * var(--fit, 1)) calc(1.4vh * var(--fit, 1)); }
+.col--narrow .extras h3     { font-size: calc(1.7vh * var(--fit, 1)); }
+.col--narrow .extras li     { font-size: calc(1.2vh * var(--fit, 1)); }
+.col--narrow .extras .it-en { font-size: calc(0.88vh * var(--fit, 1)); }

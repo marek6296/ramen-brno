@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Dish, Group, MenuData, OptionGroup } from "@/lib/menu";
 
 /**
@@ -70,13 +70,23 @@ function Ingredients({ parts, className }: { parts: string[]; className: string 
   );
 }
 
-function DishRow({ d, currency }: { d: Dish; currency: string }) {
+function DishRow({
+  d,
+  currency,
+  noPhoto,
+}: {
+  d: Dish;
+  currency: string;
+  /** krajné stĺpce sú úzke — fotky sú len v strednom ramen bloku */
+  noPhoto?: boolean;
+}) {
   const out = !d.available;
+  const showPhoto = !noPhoto && !!d.image;
   return (
     <article
-      className={`dish${out ? " out" : ""}${d.image ? " has-photo" : ""}`}
+      className={`dish${out ? " out" : ""}${showPhoto ? " has-photo" : ""}`}
     >
-      {d.image && (
+      {showPhoto && (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img className="photo" src={d.image} alt="" loading="eager" />
       )}
@@ -208,7 +218,8 @@ function CategoryBlock({
       <SectionHead name={group.name} nameEn={group.nameEn} sub={sub} />
       <div className="list">
         {group.dishes.map((d) => (
-          <DishRow key={d.id} d={d} currency={currency} />
+          /* CategoryBlock sa používa len v krajných stĺpcoch — bez fotiek */
+          <DishRow key={d.id} d={d} currency={currency} noPhoto />
         ))}
       </div>
     </>
@@ -273,6 +284,55 @@ function FullscreenButton() {
 }
 
 /* skryje kurzor po 3 s nečinnosti — na TV šípka inak trčí na obrazovke */
+/**
+ * Krajný stĺpec, ktorý sa sám prispôsobí počtu položiek.
+ *
+ * Klient môže v ChoiceQR chuťovky pridávať aj uberať. Namiesto hádania podľa
+ * počtu odmeriame skutočnú výšku obsahu a po krokoch zmenšujeme mierku
+ * (`--fit`), kým sa všetko nezmestí. Tým je zaručené, že vidno VŠETKO —
+ * aj keď má niektorá položka dlhší popis.
+ *
+ * Beží len pri zmene dát / rozmerov, nie každý snímok — na TV to nič nestojí.
+ */
+function FitColumn({
+  children,
+  signature,
+}: {
+  children: React.ReactNode;
+  /** zmena tohto reťazca spustí prepočet (počet + názvy položiek) */
+  signature: string;
+}) {
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const fit = () => {
+      el.style.setProperty("--fit", "1");
+      let s = 1;
+      // 16 krokov po 3,5 % => v najhoršom prípade zmenší na 60 %
+      for (let i = 0; i < 16 && el.scrollHeight > el.clientHeight + 1; i++) {
+        s = Math.round((s - 0.035) * 1000) / 1000;
+        if (s < 0.6) break;
+        el.style.setProperty("--fit", String(s));
+      }
+    };
+
+    fit();
+    // písma sa načítajú neskôr a zmenia metriku textu -> prepočítať
+    document.fonts?.ready.then(fit).catch(() => {});
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [signature]);
+
+  return (
+    <section ref={ref} className="col col--narrow">
+      {children}
+    </section>
+  );
+}
+
 function useIdleCursor() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -309,6 +369,15 @@ export default function Board({ initial }: { initial: MenuData }) {
     return () => clearInterval(id);
   }, []);
 
+  // pri zmene obsahu krajných stĺpcov sa prepočíta ich mierka
+  const sig = (gs: Group[]) =>
+    gs.map((g) => g.name + ":" + g.dishes.map((d) => d.id).join(",")).join("|");
+  const leftSig = sig(data.left);
+  const rightSig =
+    sig(data.right) +
+    "|" +
+    [...data.choices, ...data.extras].map((g) => g.items.length).join(",");
+
   const c = data.currency;
   const bg = data.place.background;
 
@@ -322,8 +391,6 @@ export default function Board({ initial }: { initial: MenuData }) {
           <span className="brandmark">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className="logo" src="/logo.png" alt="Ramen Brno" />
-            {/* odlesk – prejde cez logo každých ~6 s, orezaný maskou na tvar loga */}
-            <span className="gleam" aria-hidden="true" />
           </span>
           <span className="kana">ラーメン</span>
           <span className="sub">Václavská · Brno</span>
@@ -347,12 +414,13 @@ export default function Board({ initial }: { initial: MenuData }) {
       </header>
 
       <main className="cols">
-        {/* 1 — ľavý krajný stĺpec: kategórie z ChoiceQR */}
-        <section className="col col--narrow">
+        {/* 1 — ľavý krajný stĺpec: kategórie z ChoiceQR.
+               Sám sa zmenší, keď klient pridá ďalšie chuťovky. */}
+        <FitColumn signature={leftSig}>
           {data.left.map((g, i) => (
             <CategoryBlock key={g.id} group={g} currency={c} sub={i > 0} />
           ))}
-        </section>
+        </FitColumn>
 
         {/* 2 — najväčšia kategória: JEDEN široký blok, jeden nadpis.
                Do dvoch podstĺpcov ho rozloží CSS, poradie z ChoiceQR ostáva. */}
@@ -384,8 +452,8 @@ export default function Board({ initial }: { initial: MenuData }) {
           )}
         </section>
 
-        {/* 4 — pravý krajný stĺpec + přídavky dole */}
-        <section className="col col--narrow">
+        {/* 4 — pravý krajný stĺpec + přídavky dole (tiež sa prispôsobí) */}
+        <FitColumn signature={rightSig}>
           {data.right.map((g, i) => (
             <CategoryBlock key={g.id} group={g} currency={c} sub={i > 0} />
           ))}
@@ -413,7 +481,7 @@ export default function Board({ initial }: { initial: MenuData }) {
               currency={c}
             />
           </div>
-        </section>
+        </FitColumn>
       </main>
 
       <FullscreenButton />
