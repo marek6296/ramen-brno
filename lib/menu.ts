@@ -21,16 +21,21 @@ const BASE = process.env.CHOICEQR_BASE ?? "https://vaclavska.ramen-brno.cz";
 /** bez tejto hlavičky dostaneme rozvozové menu namiesto reštauračného */
 const DINE_IN_REFERER = `${BASE}/menu`;
 
-export type Label =
-  | "vegetarian"
-  | "vegan"
-  | "gluten"
-  | "spicy"
-  | "middle-spicy"
-  | "hot-spicy"
-  | "new"
-  | "recommended"
-  | (string & {});
+/**
+ * Značka pri jedle. Zoznam typov je overený proti frontendu ChoiceQR
+ * (ich `switch (type)`): alcohol | gluten | spicy | middle-spicy | vegan |
+ * vegetarian | recommended | new | custom.
+ *
+ * `custom` = vlastná značka, ktorú si klient napíše sám — text je v `name`
+ * (a v EN mutácii v `nameEn`). Preto tu držíme celý objekt a nie len string:
+ * inak by sa vlastné značky ticho stratili.
+ */
+export type Label = {
+  type: string;
+  /** len pri vlastnej značke klienta */
+  name?: string;
+  nameEn?: string;
+};
 
 export type OptionItem = { name: string; nameEn?: string; price: number };
 export type OptionGroup = {
@@ -129,14 +134,20 @@ function cleanName(name: string) {
 }
 
 /**
- * Alergény: Choice pridal poddruhy (1.1, 1.2 = rôzne zdroje lepku).
- * Klient chce len základnú škálu 1–14 -> zaokrúhliť nadol, odstrániť duplicity, zoradiť.
+ * Alergény: ChoiceQR posiela poddruhy ako desatinné čísla (1.1, 1.2 = rôzne
+ * zdroje lepku). Klient chce na doske len základné číslo -> zaokrúhliť nadol,
+ * odstrániť duplicity, zoradiť.
+ *
+ * POZOR na hornú hranicu: ChoiceQR nemá 14 alergénov ako povinná EÚ tabuľka,
+ * ale 16 — navyše 15 (Med) a 16 (Citrus). Preto sa NEOREZÁVA na 14; zahodený
+ * alergén je pri jedle to najhoršie, čo sa môže stať, a klient by sa o tom
+ * nedozvedel. Horná hranica je len ochrana proti nezmyslu z API, nie filter.
  */
 function normalizeAllergens(raw: unknown): number[] {
   if (!Array.isArray(raw)) return [];
   const base = raw
     .map((a) => Math.floor(Number(a)))
-    .filter((n) => Number.isFinite(n) && n >= 1 && n <= 14);
+    .filter((n) => Number.isFinite(n) && n >= 1 && n <= 99);
   return [...new Set(base)].sort((a, b) => a - b);
 }
 
@@ -154,7 +165,15 @@ function toDish(raw: any, en: any | undefined, catName: string): Dish {
     weight: raw.weight ? `${raw.weight}${raw.weightType ?? ""}` : undefined,
     kcal: raw.kcal || undefined,
     allergens: normalizeAllergens(raw.allergens),
-    labels: (raw.menu_labels ?? []).map((l: any) => l.type),
+    labels: (raw.menu_labels ?? [])
+      .map(
+        (l: any, i: number): Label => ({
+          type: String(l?.type ?? ""),
+          name: l?.custom ? l?.name || undefined : undefined,
+          nameEn: l?.custom ? en?.menu_labels?.[i]?.name || undefined : undefined,
+        }),
+      )
+      .filter((l: Label) => l.type),
     image: media?.webp?.medium ?? media?.medium ?? media?.url,
     options: (raw.menu_options ?? [])
       .filter((o: any) => o.active)

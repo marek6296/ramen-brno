@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Dish, Group, MenuData, OptionGroup } from "@/lib/menu";
+import type { Dish, Group, Label, MenuData, OptionGroup } from "@/lib/menu";
 
 /**
  * Japonská ozdoba k nadpisu — čisto dekorácia, hľadá sa podľa názvu kategórie.
@@ -21,31 +21,59 @@ const kanaFor = (name: string) =>
 
 /* ---------- pomocné ---------- */
 
+/**
+ * Všetky značky, ktoré ChoiceQR pozná — typy sú overené proti ich frontendu,
+ * české a anglické znenie je prevzaté 1:1 z klientovho webu, nech to sedí.
+ * Pálivosť má v ChoiceQR dva stupne (`middle-spicy` a `spicy`); `hot-spicy`
+ * držíme pre prípad, že ho niekedy doplnia.
+ */
 const LABELS: Record<string, { cls: string; cz: string; en: string }> = {
+  vegan: { cls: "veg", cz: "Veganské", en: "Vegan" },
   vegetarian: { cls: "veg", cz: "Vegetariánské", en: "Vegetarian" },
-  vegan: { cls: "veg", cz: "Vegan", en: "Vegan" },
-  "middle-spicy": { cls: "hot", cz: "Pálivé", en: "Spicy" },
-  "hot-spicy": { cls: "hot", cz: "Velmi pálivé", en: "Very spicy" },
-  spicy: { cls: "hot", cz: "Pálivé", en: "Spicy" },
-  new: { cls: "new", cz: "Novinka", en: "New" },
-  recommended: { cls: "rec", cz: "Doporučujeme", en: "Chef's pick" },
+  gluten: { cls: "gf", cz: "Bezlepkové", en: "Gluten free" },
+  "middle-spicy": { cls: "hot hot--mid", cz: "Středně pikantní", en: "Middle spicy" },
+  spicy: { cls: "hot hot--full", cz: "Pikantní", en: "Spicy" },
+  "hot-spicy": { cls: "hot hot--max", cz: "Velmi pikantní", en: "Very spicy" },
+  alcohol: { cls: "alc", cz: "Alkohol", en: "Alcohol" },
+  recommended: { cls: "rec", cz: "Doporučujeme", en: "Recommended" },
+  new: { cls: "new", cz: "Nové", en: "New" },
 };
 
-function Tags({ labels }: { labels: string[] }) {
+/** Poradie na doske je pevné, nech sa značky nepreskupujú, keď klient niečo zapne. */
+const LABEL_ORDER = Object.keys(LABELS);
+
+/** Neznámy typ spravíme aspoň čitateľným: "lactose-free" -> "Lactose free". */
+const prettify = (t: string) =>
+  t.replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase());
+
+function Tags({ labels }: { labels: Label[] }) {
   const seen = new Set<string>();
-  const out = labels
-    .map((l) => LABELS[l])
-    .filter((l): l is (typeof LABELS)[string] => {
-      if (!l || seen.has(l.cz)) return false;
-      seen.add(l.cz);
-      return true;
-    });
+  const out: { cls: string; cz: string; en?: string }[] = [];
+  for (const l of [...labels].sort((a, b) => {
+    const r = (t: string) => {
+      const i = LABEL_ORDER.indexOf(t);
+      return i === -1 ? LABEL_ORDER.length : i;
+    };
+    return r(a.type) - r(b.type);
+  })) {
+    // vlastnú značku klienta ani neznámy typ nezahadzujeme — radšej ju vypíšeme
+    const t = LABELS[l.type] ?? {
+      cls: "own",
+      cz: l.name || prettify(l.type),
+      en: l.nameEn,
+    };
+    if (!t.cz || seen.has(t.cz)) continue;
+    seen.add(t.cz);
+    // keď klient vlastnú značku nepreložil, EN mutácia je tá istá — nepíšeme ju dvakrát
+    out.push(t.en === t.cz ? { ...t, en: undefined } : t);
+  }
   if (!out.length) return null;
   return (
     <>
       {out.map((l) => (
         <span key={l.cz} className={`tag ${l.cls}`}>
-          {l.cz} <span style={{ opacity: 0.6 }}>/ {l.en}</span>
+          {l.cz}
+          {l.en && <span className="tag__en"> / {l.en}</span>}
         </span>
       ))}
     </>
@@ -100,10 +128,12 @@ function DishRow({
       )}
       <Ingredients parts={d.parts} className="desc" />
       <Ingredients parts={d.partsEn} className="desc-en" />
-      {/* 1. riadok: len štítky (Doporučujeme, Novinka, Pálivé, …) */}
-      {(out || d.labels.length > 0) && (
+      {/* 1. riadok: len štítky (Doporučujeme, Novinka, Pálivé, …).
+          Vypredané tu ZÁMERNE nemá vlastný štítok — pridával štvrtý prvok,
+          riadok sa zalomil a jedlo prerástlo svoj slot cez susedné. Že je
+          vypredané, povie prečiarknutý názov aj cena, stlmenie a šedá fotka. */}
+      {d.labels.length > 0 && (
         <div className="meta">
-          {out && <span className="soldout">Vyprodáno / Sold out</span>}
           <Tags labels={d.labels} />
         </div>
       )}
@@ -333,6 +363,88 @@ function FitColumn({
   );
 }
 
+/**
+ * Stredný blok má sloty s PEVNOU výškou, aby ramen po vypnutí iného nepreskočil.
+ * Lenže mriežka slot sama nezväčší — keby bol niektorý ramen vyšší, pretiekol by
+ * cez ten pod ním. Preto sa to premeria a v takom prípade sa zapne hustejšia
+ * sadzba. Meranie je spoľahlivejšie než pravidlo podľa počtu jedál: záleží na
+ * tom, aké dlhé texty a koľko štítkov klient v ChoiceQR napíše.
+ *
+ * `dense` sa nasadzuje priamo na element, nie cez React — className v JSX je
+ * nemenný, takže ho React pri prekreslení neprepíše.
+ */
+/** Anglický popis ramenov: strop je overený meraním, pod spodok nejdeme. */
+const MAX_DESC_EN = 1.2;
+const MIN_DESC_EN = 1.0;
+/** Spodná hranica zmenšovania štítkov; 4 dvojjazyčné sa do nej ešte zmestia. */
+const MIN_TAG_FIT = 0.6;
+
+function useDenseGrid(signature: string) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const meraj = () => {
+      el.classList.remove("dense"); // vždy meriame v normálnom režime
+
+      // 1) Anglický popis čo najväčší, ale stále CELÝ na dva riadky.
+      //    Nezvolíme veľkosť natvrdo: keď klient popis predĺži, doska sa
+      //    sama stiahne, namiesto toho aby preklad odsekla.
+      const orezany = () =>
+        [...el.querySelectorAll<HTMLElement>(".desc-en")].some(
+          (e) => e.scrollHeight > e.clientHeight + 1,
+        );
+      let v = MAX_DESC_EN;
+      el.style.setProperty("--desc-en", `${v}vh`);
+      while (v > MIN_DESC_EN && orezany()) {
+        v = Math.round((v - 0.03) * 100) / 100;
+        el.style.setProperty("--desc-en", `${v}vh`);
+      }
+
+      // 2) Štítky vždy na JEDEN riadok. Tretí štítok by sa inak zalomil, jedlo
+      //    by narástlo a tlačilo to pod sebou. Meria sa každý riadok zvlášť —
+      //    jedlá majú rôzne dlhé štítky, spoločná veľkosť by zbytočne zmenšila
+      //    aj tie, ktoré sa v pohode zmestia.
+      for (const m of el.querySelectorAll<HTMLElement>(".meta:not(.meta--alg)")) {
+        const pretecie = () => m.scrollWidth > m.clientWidth + 1;
+        const zmensuj = (spodok: number) => {
+          let t = 1;
+          m.style.removeProperty("--tag-fit");
+          while (t > spodok && pretecie()) {
+            t = Math.round((t - 0.04) * 100) / 100;
+            m.style.setProperty("--tag-fit", String(t));
+          }
+        };
+
+        m.style.flexWrap = "";
+
+        // Preklad ostáva vždy — zmenší sa celý štítok aj s ním.
+        zmensuj(MIN_TAG_FIT);
+
+        // Posledná záchrana pri nezmyselnom počte — zalomiť je lepšie než odseknúť.
+        if (pretecie()) m.style.flexWrap = "wrap";
+      }
+
+      // 3) Až potom výška — písmo aj štítky ju ovplyvňujú.
+      const riadky = getComputedStyle(el)
+        .gridTemplateRows.split(" ")
+        .map(parseFloat)
+        .filter((n) => Number.isFinite(n));
+      if (!riadky.length) return;
+      const slot = Math.min(...riadky);
+      const nezmesti = [...el.children].some(
+        (c) => c.getBoundingClientRect().height > slot + 1,
+      );
+      if (nezmesti) el.classList.add("dense");
+    };
+    meraj();
+    document.fonts?.ready.then(meraj).catch(() => {});
+    window.addEventListener("resize", meraj);
+    return () => window.removeEventListener("resize", meraj);
+  }, [signature]);
+  return ref;
+}
+
 function useIdleCursor() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -372,6 +484,13 @@ export default function Board({ initial }: { initial: MenuData }) {
   // pri zmene obsahu krajných stĺpcov sa prepočíta ich mierka
   const sig = (gs: Group[]) =>
     gs.map((g) => g.name + ":" + g.dishes.map((d) => d.id).join(",")).join("|");
+  /* 8 ramenov -> 4+4, 7 -> 4+3, 6 -> 3+3, 5 -> 3+2 … presne ako to chce klient */
+  const rows = Math.ceil((data.main?.dishes.length ?? 0) / 2) || 1;
+  const mainRef = useDenseGrid(
+    (data.main?.dishes ?? [])
+      .map((d) => `${d.id}${d.available ? "" : "!"}${d.labels.length}`)
+      .join(","),
+  );
   const leftSig = sig(data.left);
   const rightSig =
     sig(data.right) +
@@ -401,16 +520,12 @@ export default function Board({ initial }: { initial: MenuData }) {
           MENU<span className="kana"> メニュー</span>
         </span>
         <div className="top-right">
-          <span className="status">
-            <span className={`dot${data.place.opened ? "" : " off"}`} />
-            {data.place.opened ? "Otevřeno" : "Zavřeno"}
-            {data.workTime && (
-              <span style={{ opacity: 0.6 }}>
-                {" "}
-                · {data.workTime.from.slice(0, 5)}–{data.workTime.till.slice(0, 5)}
-              </span>
-            )}
-          </span>
+          {/* klient nechce v hlavičke signalizáciu otvorené/zavreté — len hodiny */}
+          {data.workTime && (
+            <span className="status">
+              {data.workTime.from.slice(0, 5)}–{data.workTime.till.slice(0, 5)}
+            </span>
+          )}
           <Clock />
         </div>
       </header>
@@ -437,12 +552,22 @@ export default function Board({ initial }: { initial: MenuData }) {
               </div>
               {/* Mriežka 2 stĺpce × N riadkov s rovnako vysokými slotmi.
                   `grid-auto-flow: column` plní najprv ľavý stĺpec zhora nadol
-                  a až potom pravý — poradie z ChoiceQR teda ostáva. */}
+                  a až potom pravý — poradie z ChoiceQR teda ostáva.
+
+                  `--rows` je koľko riadkov naozaj treba: ceil(n/2) rozdelí
+                  jedlá tak, ako to chce klient — 8→4+4, 7→4+3, 6→3+3, 5→3+2.
+                  `--slot-rows` je referencia pre VÝŠKU slotu a nikdy neklesne
+                  pod 4 (= plných 8 ramenov). Vďaka tomu zostanú položky pri
+                  vypnutí jedného jedla na svojich miestach a voľné miesto
+                  ostane dole; keby klient niekedy pridal deviate jedlo,
+                  referencia narastie s ním, takže sa to neprepečie. */}
               <div
+                ref={mainRef}
                 className="list tight twocol"
                 style={
                   {
-                    "--rows": Math.ceil(data.main.dishes.length / 2),
+                    "--rows": rows,
+                    "--slot-rows": Math.max(4, rows),
                   } as React.CSSProperties
                 }
               >

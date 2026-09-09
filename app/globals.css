@@ -210,19 +210,6 @@ html, body {
 
 .status { display: flex; align-items: center; gap: 0.7vh; }
 
-.dot {
-  width: 0.85vh; height: 0.85vh; border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 0.3vh rgba(217, 116, 26, 0.2);
-  animation: pulse 3.2s ease-in-out infinite;
-}
-.dot.off { background: var(--ink-3); box-shadow: none; animation: none; }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.35; }
-}
-
 .clock {
   font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
   font-size: 2.4vh;
@@ -286,7 +273,7 @@ html, body {
   margin-left: auto;
   font-size: 1.1vh;
   letter-spacing: 0.28em;
-  text-transform: uppercase;
+  /* žiadne uppercase: text píše klient v ChoiceQR, ide o ňom presne tak, ako ho napísal */
   color: var(--ink-3);
 }
 
@@ -294,7 +281,7 @@ html, body {
 .extras, .sec { flex: 0 0 auto; }
 .list.tight { gap: 0.95vh; justify-content: space-between; }
 .list.tight .desc    { margin-top: 0.4vh; line-height: 1.36; }
-.list.tight .desc-en { font-size: 1.08vh; line-height: 1.32; }
+.list.tight .desc-en { font-size: var(--desc-en, 1.08vh); line-height: 1.32; }
 .list.tight .meta    { margin-top: 0.4vh; }
 
 /* ---------------- položka ---------------- */
@@ -326,7 +313,7 @@ html, body {
   grid-column: 1 / -1;
   font-size: var(--fs-dish-en);
   letter-spacing: 0.24em;
-  text-transform: uppercase;
+  /* žiadne uppercase: text píše klient v ChoiceQR, ide o ňom presne tak, ako ho napísal */
   color: var(--ink-3);
   margin-top: 0.25vh;
 }
@@ -361,20 +348,50 @@ html, body {
   color: var(--ink-3);
 }
 
+/* Štítky v ramenoch sa nesmú zalomiť do druhého riadka — jedlo by narástlo
+   a tlačilo to pod sebou. Keď ich klient pridá viac, `--tag-fit` ich úmerne
+   zmenší; hodnotu nastavuje board.tsx podľa nameranej šírky.
+   V krajných stĺpcoch (chuťovky, dezerty) sa zalamovať smú — tam je na to
+   miesto a klient to tak chce. */
+.list.twocol .dish .meta:not(.meta--alg) { flex-wrap: nowrap; }
+.list.twocol .meta { gap: calc(0.9vh * var(--tag-fit, 1)); }
 .tag {
   display: inline-flex;
   align-items: center;
-  gap: 0.35vh;
-  padding: 0.25vh 0.7vh;
+  gap: calc(0.35vh * var(--tag-fit, 1));
+  padding: calc(0.25vh * var(--tag-fit, 1)) calc(0.7vh * var(--tag-fit, 1));
   border: 0.12vh solid currentColor;
   border-radius: 0.3vh;
-  font-size: 0.92vh;
-  letter-spacing: 0.16em;
+  font-size: calc(0.92vh * var(--tag-fit, 1));
+  letter-spacing: calc(0.16em * var(--tag-fit, 1));
+  white-space: nowrap;
+  flex: none;
 }
+.tag__en { opacity: 0.6; }
 .tag.veg  { color: #3f6b34; }
+.tag.gf   { color: #2f6470; }   /* bezlepkové – iná farba než vegetariánske, nech sa nepletú */
 .tag.hot  { color: #b23b18; }
+.tag.alc  { color: #6a4a86; }
+.tag.own  { color: var(--ink-2); }  /* vlastná značka klienta z ChoiceQR */
 .tag.new  { color: var(--accent-deep); border-color: var(--accent-deep); }
 .tag.rec  { color: var(--ink); background: rgba(217, 116, 26, 0.16); border-color: transparent; }
+
+/* Stupeň pálivosti sa dá odlíšiť aj bez čítania: 1 bodka = středně, 2 = pikantní. */
+.tag.hot::before {
+  content: "";
+  flex: none;
+  width: 0.42vh;
+  height: 0.42vh;
+  border-radius: 50%;
+  background: currentColor;
+}
+.tag.hot--mid  { color: #c2701f; }
+.tag.hot--full::before { box-shadow: 0.62vh 0 0 currentColor; margin-right: 0.62vh; }
+.tag.hot--max  { color: #8f2a10; }
+.tag.hot--max::before {
+  box-shadow: 0.62vh 0 0 currentColor, 1.24vh 0 0 currentColor;
+  margin-right: 1.24vh;
+}
 
 /* ---------------- prídavky ---------------- */
 
@@ -392,7 +409,7 @@ html, body {
 .extras .en-h {
   font-size: 0.95vh;
   letter-spacing: 0.26em;
-  text-transform: uppercase;
+  /* žiadne uppercase: text píše klient v ChoiceQR, ide o ňom presne tak, ako ho napísal */
   color: var(--ink-3);
   margin-bottom: 0.9vh;
 }
@@ -527,26 +544,6 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
 .drink.out { opacity: 0.42; }
 .drink.out .n { text-decoration: line-through; }
 
-/* štítok "Vyprodáno / Sold out" */
-.soldout {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.2vh 0.7vh;
-  border: 0.12vh solid #b23b18;
-  border-radius: 0.3vh;
-  color: #b23b18;
-  font-size: 0.92vh;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  text-decoration: none;   /* aby ho neprečiarklo spolu s okolím */
-}
-.drink .soldout {
-  margin-left: 0.6vh;
-  padding: 0.05vh 0.45vh;
-  font-size: 0.85vh;
-  transform: translateY(-0.15vh);
-}
 
 /* ================= úpravy podľa pripomienok klienta ================= */
 
@@ -601,6 +598,12 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
 .col--narrow .dish .name-en { font-size: 1.2vh; }
 .col--narrow .meta { gap: 0.55vh; margin-top: 0.35vh; }
 .col--narrow .tag  { font-size: 0.82vh; padding: 0.18vh 0.5vh; }
+.col--narrow .tag.hot::before { width: 0.36vh; height: 0.36vh; }
+.col--narrow .tag.hot--full::before { box-shadow: 0.52vh 0 0 currentColor; margin-right: 0.52vh; }
+.col--narrow .tag.hot--max::before {
+  box-shadow: 0.52vh 0 0 currentColor, 1.04vh 0 0 currentColor;
+  margin-right: 1.04vh;
+}
 
 /* druhý nadpis v úzkom stĺpci (DĚTSKÉ JÍDLO pod dezertom) */
 .sec--sub { margin-top: 0.6vh; }
@@ -658,7 +661,7 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
   font-size: 0.92vh;
   font-weight: 700;
   letter-spacing: 0.2em;
-  text-transform: uppercase;
+  /* žiadne uppercase: text píše klient v ChoiceQR, ide o ňom presne tak, ako ho napísal */
   color: var(--accent-deep);
   margin-bottom: 0.35vh;
   padding-bottom: 0.25vh;
@@ -745,6 +748,12 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
 
 /* anglický popis späť na 2 riadky — orezaný preklad je horší než tesnejšia sadzba */
 .list.twocol .desc-en { -webkit-line-clamp: 2; }
+
+/* Anglický popis ramenov sa smie lámať aj vnútri frázy. Pri celých frázach
+   ostávali konce riadkov ragged a text sa do dvoch riadkov zmestil len pri
+   drobnom písme; takto sa dá to isté napísať o poznanie väčším. Český popis
+   nad ním si celé frázy drží ďalej — tam na tom záleží viac. */
+.list.twocol .desc-en .ing { display: inline; white-space: normal; }
 .list.twocol .dish { margin-bottom: 1.15vh; }
 .cols { --thumb: 6.4vh; }
 .col--narrow { --thumb: 5.4vh; }
@@ -779,7 +788,7 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
   flex: 0 0 100%;
   font-size: 0.88vh;
   letter-spacing: 0.14em;
-  text-transform: uppercase;
+  /* žiadne uppercase: text píše klient v ChoiceQR, ide o ňom presne tak, ako ho napísal */
   color: var(--ink-3);
   line-height: 1.25;
   margin-bottom: 0.28vh;
@@ -809,14 +818,30 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
 .list.twocol {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: repeat(var(--rows, 4), 1fr);
+
+  /* Slot má PEVNÚ výšku odvodenú od plného stavu (8 ramenov = 4 riadky),
+     nie 1fr z dostupnej výšky. Keď klient jedno jedlo vypne, zvyšné ostanú
+     presne tam, kde boli, a prázdne miesto zostane dole — nič sa neroztiahne.
+     `--slot-rows` posiela board.tsx; nikdy neklesne pod 4, takže pri 6 alebo 7
+     ramenoch je slot rovnako vysoký ako pri ôsmich. `minmax(…, auto)` je
+     poistka: keby bola položka výnimočne vysoká, riadok jej ustúpi namiesto
+     toho, aby ju orezal. */
+  --row-gap: 1.2vh;
+  --slot: calc(
+    (100% - (var(--slot-rows, 4) - 1) * var(--row-gap)) / var(--slot-rows, 4)
+  );
+  grid-template-rows: repeat(var(--rows, 4), minmax(var(--slot), auto));
+  align-content: start;        /* voľné miesto zostáva dole, nie rozhádzané */
+
   grid-auto-flow: column;      /* najprv dole vľavo, potom vpravo */
   column-gap: 3.4vh;
-  row-gap: 1.2vh;
+  row-gap: var(--row-gap);
   height: 100%;
   align-items: start;
 
-  /* zvislá deliaca linka presne v strede medzi polovicami */
+  /* Zvislá deliaca linka presne v strede medzi polovicami. Siaha len po
+     posledný riadok — keď klient jedlá vypne a dole ostane voľné miesto,
+     čiara nesmie visieť do prázdna. */
   background-image: linear-gradient(
     to right,
     transparent calc(50% - 0.07vh),
@@ -824,6 +849,9 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
     rgba(20, 17, 15, 0.22) calc(50% + 0.07vh),
     transparent calc(50% + 0.07vh)
   );
+  background-repeat: no-repeat;
+  background-size: 100%
+    calc(var(--rows, 4) * var(--slot) + (var(--rows, 4) - 1) * var(--row-gap));
 
   /* vlastnosti CSS stĺpcov už neplatia */
   column-count: auto;
@@ -831,6 +859,24 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
   column-fill: balance;
 }
 .list.twocol .dish { margin-bottom: 0; }
+
+/* POISTKA nad rámec dohodnutých 8 ramenov.
+   Keby ich klient v ChoiceQR pridal viac, slot sa stenčí a jedlá by sa
+   prekrývali. Radšej skrátime popisy a zmenšíme fotku, než by mala doska
+   praskať alebo — čo je najhoršie — poslednú položku neviditeľne odrezať.
+   Triedu `dense` nasadzuje board.tsx, keď treba viac než 4 riadky. */
+.list.twocol.dense { --thumb: 4.6vh; }
+.list.twocol.dense .desc    { -webkit-line-clamp: 2; }
+.list.twocol.dense .desc-en { -webkit-line-clamp: 1; }
+.list.twocol.dense .dish .name    { font-size: 2.05vh; }
+.list.twocol.dense .dish .price   { font-size: 2.05vh; }
+.list.twocol.dense .dish .name-en { font-size: 1.25vh; }
+.list.twocol.dense .meta { margin-top: 0.2vh; gap: calc(0.45vh * var(--tag-fit, 1)); }
+.list.twocol.dense .tag {
+  font-size: calc(0.8vh * var(--tag-fit, 1));
+  padding: calc(0.12vh * var(--tag-fit, 1)) calc(0.45vh * var(--tag-fit, 1));
+}
+.list.twocol.dense .desc { font-size: 1.55vh; }
 
 /* ---- „incl." presunuté pod cenu, na koniec anglického riadku ---- */
 .extras .it-en {
