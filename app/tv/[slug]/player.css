@@ -16,8 +16,35 @@
   inset: 0;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 600ms ease;
 }
+
+/* Prechody. Iba `opacity` a `transform` — nič iné sa na televízore nehýbe
+   plynulo. Položka pritom zostáva v DOM, takže sa médiá nesťahujú znova. */
+.polozka--prechod-fade { transition: opacity 700ms ease; }
+
+.polozka--prechod-slide {
+  transition:
+    opacity 600ms ease,
+    transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateX(4%);
+}
+.polozka--prechod-slide.polozka--vidno { transform: translateX(0); }
+
+.polozka--prechod-zoom {
+  transition:
+    opacity 700ms ease,
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform: scale(1.03);
+}
+.polozka--prechod-zoom.polozka--vidno { transform: scale(1); }
+
+.polozka--prechod-none { transition: none; }
+
+/* DÔLEŽITÉ: menu si po zobrazení meria vlastné rozmery, aby sa rozhodlo,
+   či zhustiť sadzbu. `transform` na rodičovi mu tie rozmery skreslí — pri
+   skrytej položke by meralo o 3 % vedľa a zbytočne by zhustilo. Preto pri
+   menu necháme len priehľadnosť. */
+.polozka--menu { transform: none !important; }
 
 .polozka--vidno {
   opacity: 1;

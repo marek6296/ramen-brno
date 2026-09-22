@@ -2,9 +2,30 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { DuplicateSlugError, NotFoundError } from "./types";
-import type { NewScreen, Screen, ScreenPatch, Store } from "./types";
+import type {
+  NewScreen,
+  PlaylistItem,
+  Screen,
+  ScreenPatch,
+  Store,
+  Transition,
+} from "./types";
 
 type Data = { screens: Screen[] };
+
+const PRECHODY: Transition[] = ["fade", "slide", "zoom", "none"];
+
+/**
+ * Súbory uložené pred zavedením prechodov pole `transition` nemajú. Keby sme
+ * ho nedoplnili, prehrávač by na `.polozka` nalepil triedu
+ * `polozka--prechod-undefined` a položka by ostala bez prechodu. `"fade"` je
+ * pôvodné správanie, takže staré obrazovky vyzerajú presne ako predtým.
+ */
+function dopln(it: PlaylistItem): PlaylistItem {
+  return PRECHODY.includes(it?.transition)
+    ? it
+    : { ...it, transition: "fade" };
+}
 
 /**
  * Úložisko nad jedným JSON súborom. Slúži na vývoj a na skúšanie, kým klient
@@ -29,7 +50,14 @@ export function createLocalStore(dir: string): Store {
     }
 
     try {
-      return JSON.parse(obsah) as Data;
+      const data = JSON.parse(obsah) as Data;
+      const screens = data?.screens ?? [];
+      return {
+        screens: screens.map((s) => ({
+          ...s,
+          items: (s.items ?? []).map(dopln),
+        })),
+      };
     } catch (e) {
       // Poškodený JSON radšej nahlásime, než aby sme dáta ticho zahodili.
       throw new Error(

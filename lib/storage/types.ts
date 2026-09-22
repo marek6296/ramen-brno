@@ -3,6 +3,13 @@ export type Orientation = "landscape" | "portrait";
 /** `video` sa spracováva až v 2. etape, typ je tu, aby sa model nemusel meniť */
 export type ItemKind = "menu" | "image" | "video";
 
+export type Transition = "fade" | "slide" | "zoom" | "none";
+
+/**
+ * Položky uložené pred zavedením prechodov pole `transition` nemajú. Preto sa
+ * všade — pri čítaní z úložiska aj pri validácii v admin route — chýbajúca
+ * alebo neznáma hodnota dopĺňa na `"fade"`, čo je pôvodné správanie.
+ */
 export type PlaylistItem = {
   id: string;
   kind: ItemKind;
@@ -10,6 +17,8 @@ export type PlaylistItem = {
   mediaPath: string;
   /** ako dlho je položka vidieť, v sekundách */
   durationS: number;
+  /** ako položka nastúpi na obrazovku */
+  transition: Transition;
 };
 
 export type Screen = {

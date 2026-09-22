@@ -34,6 +34,10 @@ export async function PATCH(req: Request, { params }: Ctx) {
         mediaPath: String(it.mediaPath ?? ""),
         // pod 3 s by nikto nestihol prečítať, nad hodinu nemá zmysel
         durationS: Math.min(3600, Math.max(3, Math.round(Number(it.durationS) || 10))),
+        // staré položky pole nemajú a z prehliadača môže prísť čokoľvek
+        transition: ["fade", "slide", "zoom", "none"].includes(it.transition)
+          ? it.transition
+          : "fade",
       }),
     );
   }

@@ -3,7 +3,20 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { DemoSlide } from "@/lib/slides";
-import type { Orientation, PlaylistItem, Screen } from "@/lib/storage/types";
+import type {
+  Orientation,
+  PlaylistItem,
+  Screen,
+  Transition,
+} from "@/lib/storage/types";
+
+/** popisky prechodov pre obsluhu — poradie je aj poradím v ponuke */
+const PRECHODY: { hodnota: Transition; popis: string }[] = [
+  { hodnota: "fade", popis: "Prelínanie" },
+  { hodnota: "slide", popis: "Posun" },
+  { hodnota: "zoom", popis: "Priblíženie" },
+  { hodnota: "none", popis: "Bez prechodu" },
+];
 
 export default function Editor({
   screen,
@@ -25,14 +38,14 @@ export default function Editor({
   function pridajMenu() {
     setItems((z) => [
       ...z,
-      { id: novyId(), kind: "menu", mediaPath: "", durationS: 30 },
+      { id: novyId(), kind: "menu", mediaPath: "", durationS: 30, transition: "fade" },
     ]);
   }
 
   function pridajSlide(path: string) {
     setItems((z) => [
       ...z,
-      { id: novyId(), kind: "image", mediaPath: path, durationS: 10 },
+      { id: novyId(), kind: "image", mediaPath: path, durationS: 10, transition: "fade" },
     ]);
   }
 
@@ -52,6 +65,10 @@ export default function Editor({
 
   function trvanie(id: string, s: number) {
     setItems((z) => z.map((i) => (i.id === id ? { ...i, durationS: s } : i)));
+  }
+
+  function prechod(id: string, t: Transition) {
+    setItems((z) => z.map((i) => (i.id === id ? { ...i, transition: t } : i)));
   }
 
   async function uloz() {
@@ -131,6 +148,17 @@ export default function Editor({
                 style={{ width: "5.5rem" }}
               />
               <span className="ticho">s</span>
+              <select
+                aria-label={`Prechod položky ${index + 1}`}
+                value={i.transition}
+                onChange={(e) => prechod(i.id, e.target.value as Transition)}
+              >
+                {PRECHODY.map((p) => (
+                  <option key={p.hodnota} value={p.hodnota}>
+                    {p.popis}
+                  </option>
+                ))}
+              </select>
               <button className="vedlajsie" onClick={() => posun(index, -1)} disabled={index === 0}>
                 ↑
               </button>

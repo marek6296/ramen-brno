@@ -117,7 +117,9 @@ export default function Player({ initial }: { initial: Screen }) {
 
       {items.map((it, i) => (
         <div
-          className={`polozka${i === index ? " polozka--vidno" : ""}`}
+          className={`polozka polozka--prechod-${it.transition}${
+            it.kind === "menu" ? " polozka--menu" : ""
+          }${i === index ? " polozka--vidno" : ""}`}
           key={it.id}
           aria-hidden={i !== index}
         >

@@ -75,6 +75,34 @@ describe("lokálne úložisko", () => {
     await expect(store.listScreens()).rejects.toThrow(/poškoden/i);
   });
 
+  it("starej položke bez prechodu doplní fade", async () => {
+    // Presne taký tvar má `.data/store.json` klienta spred zavedenia
+    // prechodov. Keby sa pole nedoplnilo, prehrávač by položke nalepil
+    // triedu `polozka--prechod-undefined` a nenastúpila by.
+    await writeFile(
+      path.join(dir, "store.json"),
+      JSON.stringify({
+        screens: [
+          {
+            id: "stara",
+            slug: "stara",
+            name: "Stará",
+            orientation: "landscape",
+            updatedAt: 1,
+            items: [
+              { id: "p1", kind: "menu", mediaPath: "", durationS: 30 },
+              { id: "p2", kind: "image", mediaPath: "/a.png", durationS: 10 },
+            ],
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    const s = await store.getScreenBySlug("stara");
+    expect(s?.items.map((i) => i.transition)).toEqual(["fade", "fade"]);
+  });
+
   it("úprava neexistujúcej obrazovky padne", async () => {
     await expect(store.updateScreen("nieje", { name: "X" })).rejects.toThrow(
       NotFoundError,
