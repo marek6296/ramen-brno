@@ -108,7 +108,15 @@ export default function ScreensList({ initial }: { initial: Screen[] }) {
                 <option value="landscape">na šírku</option>
                 <option value="portrait">na výšku</option>
               </select>{" "}
-              <span className="ticho">· {s.items.length} položiek v slede</span>
+              <span className="ticho">
+                {s.items.length === 0
+                  ? "sled je prázdny"
+                  : s.items.length === 1
+                    ? "1 položka v slede"
+                    : s.items.length < 5
+                      ? `${s.items.length} položky v slede`
+                      : `${s.items.length} položiek v slede`}
+              </span>
               {chybaOrientacie[s.id] && (
                 <p className="chyba">{chybaOrientacie[s.id]}</p>
               )}
