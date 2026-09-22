@@ -65,14 +65,15 @@ export default function Editor({
   function pridajMenu() {
     setItems((z) => [
       ...z,
-      { id: novyId(), kind: "menu", mediaPath: "", durationS: 30, transition: "fade" },
+      // `repeats` nesie každá položka, aby typ sedel; využije ho len video
+      { id: novyId(), kind: "menu", mediaPath: "", durationS: 30, transition: "fade", repeats: 1 },
     ]);
   }
 
   function pridajSlide(path: string) {
     setItems((z) => [
       ...z,
-      { id: novyId(), kind: "image", mediaPath: path, durationS: 10, transition: "fade" },
+      { id: novyId(), kind: "image", mediaPath: path, durationS: 10, transition: "fade", repeats: 1 },
     ]);
   }
 
@@ -85,9 +86,13 @@ export default function Editor({
         // do sledu ide VEREJNÁ adresa, nie názov v buckete — televízor si
         // súbor ťahá priamo zo Supabase, bez nášho servera medzi tým
         mediaPath: m.url,
-        // video nech stihne aspoň raz dobehnúť, obrázok sa prečíta rýchlejšie
+        // Pri videu sa `durationS` nepoužíva (prehrávač počíta prehratia),
+        // necháme tam ale rozumnú hodnotu pre prípad, že by sa položka
+        // niekedy prepla na iný typ.
         durationS: m.kind === "video" ? 15 : 10,
         transition: "fade",
+        // nové video sa štandardne prehrá raz a ide sa ďalej
+        repeats: 1,
       },
     ]);
   }
@@ -174,6 +179,10 @@ export default function Editor({
     setItems((z) => z.map((i) => (i.id === id ? { ...i, transition: t } : i)));
   }
 
+  function opakovania(id: string, n: number) {
+    setItems((z) => z.map((i) => (i.id === id ? { ...i, repeats: n } : i)));
+  }
+
   async function uloz() {
     setStav("Ukladám…");
     const r = await fetch(`/api/admin/screens/${screen.id}`, {
@@ -244,15 +253,39 @@ export default function Editor({
               {index + 1}. {nazov(i)}
             </span>
             <span className="riadok">
-              <input
-                type="number"
-                min={3}
-                max={3600}
-                value={i.durationS}
-                onChange={(e) => trvanie(i.id, Number(e.target.value))}
-                style={{ width: "5.5rem" }}
-              />
-              <span className="ticho">s</span>
+              {/* Pri videu sú sekundy na nič — nikto nevie, koľko klip trvá.
+                  Zadáva sa preto počet prehratí a prehrávač si počká, kým
+                  klip dohrá. Pri menu a obrázku zostávajú sekundy. */}
+              {i.kind === "video" ? (
+                <>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    aria-label={`Počet prehratí položky ${index + 1}`}
+                    title="koľkokrát sa klip prehrá"
+                    value={i.repeats}
+                    onChange={(e) => opakovania(i.id, Number(e.target.value))}
+                    style={{ width: "5.5rem" }}
+                  />
+                  <span className="ticho" title="koľkokrát sa klip prehrá">
+                    ×
+                  </span>
+                </>
+              ) : (
+                <>
+                  <input
+                    type="number"
+                    min={3}
+                    max={3600}
+                    aria-label={`Trvanie položky ${index + 1} v sekundách`}
+                    value={i.durationS}
+                    onChange={(e) => trvanie(i.id, Number(e.target.value))}
+                    style={{ width: "5.5rem" }}
+                  />
+                  <span className="ticho">s</span>
+                </>
+              )}
               <select
                 aria-label={`Prechod položky ${index + 1}`}
                 value={i.transition}

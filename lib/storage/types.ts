@@ -9,6 +9,10 @@ export type Transition = "fade" | "slide" | "zoom" | "none";
  * Položky uložené pred zavedením prechodov pole `transition` nemajú. Preto sa
  * všade — pri čítaní z úložiska aj pri validácii v admin route — chýbajúca
  * alebo neznáma hodnota dopĺňa na `"fade"`, čo je pôvodné správanie.
+ *
+ * To isté platí pre `repeats`: staré uložené položky pole nemajú, preto sa
+ * všade (lokálne úložisko, Supabase, admin route) chýbajúca alebo nezmyselná
+ * hodnota dopĺňa na `1` — presne tak, ako to už robí `transition`.
  */
 export type PlaylistItem = {
   id: string;
@@ -19,6 +23,8 @@ export type PlaylistItem = {
   durationS: number;
   /** ako položka nastúpi na obrazovku */
   transition: Transition;
+  /** len pri `video`: koľkokrát sa má klip prehrať, než sa ide ďalej */
+  repeats: number;
 };
 
 export type Screen = {

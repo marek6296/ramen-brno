@@ -45,10 +45,12 @@ describe("lokálne úložisko (súborové zvláštnosti)", () => {
     await expect(store.listScreens()).rejects.toThrow(/poškoden/i);
   });
 
-  it("starej položke bez prechodu doplní fade", async () => {
+  it("starej položke bez prechodu doplní fade a bez opakovaní jedno", async () => {
     // Presne taký tvar má `.data/store.json` klienta spred zavedenia
     // prechodov. Keby sa pole nedoplnilo, prehrávač by položke nalepil
-    // triedu `polozka--prechod-undefined` a nenastúpila by.
+    // triedu `polozka--prechod-undefined` a nenastúpila by. To isté platí
+    // pre `repeats` — bez neho by prehrávač pri videu čakal na `undefined`
+    // prehratí, teda navždy.
     const store = createLocalStore(dir);
     await writeFile(
       path.join(dir, "store.json"),
@@ -63,6 +65,24 @@ describe("lokálne úložisko (súborové zvláštnosti)", () => {
             items: [
               { id: "p1", kind: "menu", mediaPath: "", durationS: 30 },
               { id: "p2", kind: "image", mediaPath: "/a.png", durationS: 10 },
+              // video s prechodom, ale bez počtu prehratí — presne tak, ako
+              // to vyzerá v súbore uloženom pred touto zmenou
+              {
+                id: "p3",
+                kind: "video",
+                mediaPath: "/klip.mp4",
+                durationS: 15,
+                transition: "zoom",
+              },
+              // nezmyselný počet prehratí musí skončiť rovnako ako chýbajúci
+              {
+                id: "p4",
+                kind: "video",
+                mediaPath: "/klip2.mp4",
+                durationS: 15,
+                transition: "fade",
+                repeats: 0,
+              },
             ],
           },
         ],
@@ -71,6 +91,12 @@ describe("lokálne úložisko (súborové zvláštnosti)", () => {
     );
 
     const s = await store.getScreenBySlug("stara");
-    expect(s?.items.map((i) => i.transition)).toEqual(["fade", "fade"]);
+    expect(s?.items.map((i) => i.transition)).toEqual([
+      "fade",
+      "fade",
+      "zoom",
+      "fade",
+    ]);
+    expect(s?.items.map((i) => i.repeats)).toEqual([1, 1, 1, 1]);
   });
 });

@@ -20,11 +20,20 @@ const PRECHODY: Transition[] = ["fade", "slide", "zoom", "none"];
  * ho nedoplnili, prehrávač by na `.polozka` nalepil triedu
  * `polozka--prechod-undefined` a položka by ostala bez prechodu. `"fade"` je
  * pôvodné správanie, takže staré obrazovky vyzerajú presne ako predtým.
+ *
+ * To isté platí pre `repeats` (počet prehratí videa): staré položky ho nemajú
+ * a prehrávač by potom čakal na `undefined` prehratí, teda navždy. `1` je
+ * pôvodné správanie — klip sa prehrá raz a ide sa ďalej.
  */
 function dopln(it: PlaylistItem): PlaylistItem {
-  return PRECHODY.includes(it?.transition)
-    ? it
-    : { ...it, transition: "fade" };
+  const prechodSedi = PRECHODY.includes(it?.transition);
+  const opakovaniaSedia = Number.isInteger(it?.repeats) && it.repeats >= 1;
+  if (prechodSedi && opakovaniaSedia) return it;
+  return {
+    ...it,
+    transition: prechodSedi ? it.transition : "fade",
+    repeats: opakovaniaSedia ? it.repeats : 1,
+  };
 }
 
 /**

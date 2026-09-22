@@ -38,6 +38,11 @@ export async function PATCH(req: Request, { params }: Ctx) {
         transition: ["fade", "slide", "zoom", "none"].includes(it.transition)
           ? it.transition
           : "fade",
+        // Počet prehratí videa. Menej než raz nedáva zmysel a nad 20-krát by
+        // sled na tej jednej položke stál prakticky celý deň. Nezmysel
+        // (chýbajúce pole, text, desatinné číslo) padá na 1 — pôvodné
+        // správanie, klip sa prehrá raz a ide sa ďalej.
+        repeats: Math.min(20, Math.max(1, Math.round(Number(it.repeats)) || 1)),
       }),
     );
   }

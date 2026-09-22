@@ -38,9 +38,20 @@ type Riadok = {
  * pole `transition` nemajú. Keby sa nedoplnilo, prehrávač by položke nalepil
  * triedu `polozka--prechod-undefined` a nenastúpila by. `"fade"` je pôvodné
  * správanie.
+ *
+ * To isté platí pre `repeats` (počet prehratí videa): staré položky ho nemajú
+ * a prehrávač by čakal na `undefined` prehratí, teda navždy. `1` je pôvodné
+ * správanie — klip sa prehrá raz a ide sa ďalej.
  */
 function dopln(it: PlaylistItem): PlaylistItem {
-  return PRECHODY.includes(it?.transition) ? it : { ...it, transition: "fade" };
+  const prechodSedi = PRECHODY.includes(it?.transition);
+  const opakovaniaSedia = Number.isInteger(it?.repeats) && it.repeats >= 1;
+  if (prechodSedi && opakovaniaSedia) return it;
+  return {
+    ...it,
+    transition: prechodSedi ? it.transition : "fade",
+    repeats: opakovaniaSedia ? it.repeats : 1,
+  };
 }
 
 /** riadok z databázy → `Screen`; tu sa `updated_at` mení na `updatedAt` */
