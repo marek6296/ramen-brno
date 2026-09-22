@@ -6,8 +6,9 @@
 -- samotná stránka. Je to vlastnosť obrazovky, nie položky sledu, preto
 -- vlastný stĺpec a nie jsonb `items`.
 --
--- Kým táto migrácia nebeží, aplikácia čítanie prežije (chýbajúci stĺpec si
--- doplní na 'none'), ale ZÁPIS obrazovky Supabase odmietne.
+-- Aplikácia funguje aj bez tejto migrácie: pri čítaní si chýbajúci stĺpec
+-- doplní na 'none' a pri zápise ho vynechá, keď ho Supabase nepozná. Kým
+-- migrácia nebeží, len sa nedá uložiť iné otočenie než 'none'.
 
 alter table public.screens
   add column if not exists rotation text not null default 'none'
