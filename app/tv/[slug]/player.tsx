@@ -66,7 +66,13 @@ export default function Player({ initial }: { initial: Screen }) {
   /* Striedanie položiek. Beží podľa trvania práve zobrazenej položky —
      pri videu však podľa počtu prehratí, viď efekt s videami nižšie. */
   const podpis = useMemo(
-    () => items.map((i) => `${i.id}:${i.durationS}:${i.repeats}`).join(","),
+    () =>
+      items
+        .map(
+          (i) =>
+            `${i.id}:${i.kind}:${i.durationS}:${i.repeats}:${i.transition}:${i.mediaPath}`,
+        )
+        .join(","),
     [items],
   );
 
@@ -166,7 +172,13 @@ export default function Player({ initial }: { initial: Screen }) {
       clearInterval(strazca);
       clearTimeout(poistka);
     };
-  }, [index, items, dalsia]);
+    /* Zámerne `podpis` a nie `items`: dopyt na nastavenia beží každých 15 s
+       a vracia nové pole aj vtedy, keď sa v ňom nič nezmenilo. Pri závislosti
+       na identite poľa sa tým efekt spustil znova a vynuloval počítadlo
+       prehratí — klip potom zahral raz navyše. Podpis sa zmení len vtedy,
+       keď sa naozaj zmení obsah. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, podpis, dalsia]);
 
   /* Kurzor zmizne, keď sa myš nehýbe — na TV nemá čo robiť. */
   useEffect(() => {
