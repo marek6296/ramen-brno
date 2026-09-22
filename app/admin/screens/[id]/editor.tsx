@@ -55,6 +55,16 @@ type Tah = {
   krok: number;
 };
 
+/**
+ * Pri nahrávaní pred názov pridávame časovú pečiatku, aby sa dva rovnako
+ * pomenované súbory neprepísali. Klientovi do očí ale nepatrí — vidí len
+ * `1790101917464-vid-8637.mp4` a nevie, čo tým chceme povedať.
+ */
+export function citatelnyNazov(nazov?: string): string | undefined {
+  if (!nazov) return undefined;
+  return nazov.replace(/^\d{10,}-/, "");
+}
+
 export default function Editor({
   screen,
   slides,
@@ -137,7 +147,7 @@ export default function Editor({
      dvojkrokové „vyber a potom stlač Nahrať" klienta zbytočne zdržiavalo. */
   async function nahraj(subor: File) {
     setNahravam(true);
-    setMediaStav(`Nahrávam ${subor.name}…`);
+    setMediaStav(`Nahrávam ${citatelnyNazov(subor.name)}…`);
 
     const telo = new FormData();
     telo.append("file", subor);
@@ -150,7 +160,7 @@ export default function Editor({
         return;
       }
       await obnovMedia();
-      setMediaStav(`Nahraté: ${data.name}`);
+      setMediaStav(`Nahraté: ${citatelnyNazov(data.name)}`);
     } catch {
       setMediaStav("Nahrávanie zlyhalo — skús to znova");
     } finally {
@@ -161,11 +171,11 @@ export default function Editor({
   }
 
   async function zmazMedium(m: MediaFile) {
-    if (!confirm(`Naozaj zmazať ${m.name}? Zo sledu treba položku odobrať zvlášť.`)) {
+    if (!confirm(`Naozaj zmazať ${citatelnyNazov(m.name)}? Zo sledu treba položku odobrať zvlášť.`)) {
       return;
     }
 
-    setMediaStav(`Mažem ${m.name}…`);
+    setMediaStav(`Mažem ${citatelnyNazov(m.name)}…`);
     try {
       const r = await fetch(
         `/api/admin/media?path=${encodeURIComponent(m.path)}`,
@@ -177,7 +187,7 @@ export default function Editor({
         return;
       }
       await obnovMedia();
-      setMediaStav(`Zmazané: ${m.name}`);
+      setMediaStav(`Zmazané: ${citatelnyNazov(m.name)}`);
     } catch {
       setMediaStav("Mazanie zlyhalo — skús to znova");
     }
@@ -318,7 +328,7 @@ export default function Editor({
     i.kind === "menu"
       ? "Menu (živé z ChoiceQR)"
       : (slides.find((s) => s.path === i.mediaPath)?.label ??
-        mediaZoznam.find((m) => m.url === i.mediaPath)?.name ??
+        citatelnyNazov(mediaZoznam.find((m) => m.url === i.mediaPath)?.name) ??
         i.mediaPath);
 
   return (
@@ -541,7 +551,7 @@ export default function Editor({
                 type="button"
                 className="dlazdica__plocha"
                 onClick={() => pridajMedium(m)}
-                title={m.name}
+                title={citatelnyNazov(m.name)}
               >
                 <span
                   className={
@@ -560,14 +570,14 @@ export default function Editor({
                   )}
                 </span>
                 <span className="dlazdica__popis">
-                  {m.name}
+                  {citatelnyNazov(m.name)}
                   <span className="dlazdica__vaha">{vMB(m.sizeB)}</span>
                 </span>
               </button>
               <button
                 type="button"
                 className="dlazdica__zmaz"
-                aria-label={`Zmazať súbor ${m.name}`}
+                aria-label={`Zmazať súbor ${citatelnyNazov(m.name)}`}
                 title="Zmazať súbor z úložiska"
                 onClick={() => zmazMedium(m)}
               >
