@@ -23,7 +23,13 @@ export default async function ScreenPage({
   // editor; obrazovka sa dá upravovať aj bez zoznamu médií.
   const dostupne = mediaJeDostupne();
   const media = dostupne ? await listMedia().catch(() => []) : [];
-  const slidyZoznam = await getSlideStore().listSlides();
+  // Slidy sú v editore obrazovky iba ponukou, z čoho vyberať. Keby ich
+  // načítanie zlyhalo (tabuľka ešte nevznikla, Supabase má výpadok), nesmie
+  // to zhodiť celú stránku — obrazovka sa musí dať upraviť aj bez nich.
+  // Rovnako to má vedľa aj `listMedia`.
+  const slidyZoznam = await getSlideStore()
+    .listSlides()
+    .catch(() => []);
 
   return (
     <Editor
