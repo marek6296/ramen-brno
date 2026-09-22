@@ -234,6 +234,11 @@ body:has(.admin) {
   color: var(--a-ink-3);
 }
 
+/* `input:not([type])` je tu zámerne: bez neho sa políčko napísané ako
+   obyčajné `<input value=… />` do tohto pravidla netrafí, ostane na
+   predvolenej šírke prehliadača a vo formulári vyzerá ako omylom vložené
+   textové pole. Stalo sa to v editore slidov. */
+.admin input:not([type]),
 .admin input[type="text"],
 .admin input[type="password"],
 .admin input[type="number"] {
@@ -248,6 +253,21 @@ body:has(.admin) {
   border: 1px solid var(--a-linka);
   border-radius: var(--a-r-2);
   transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+/* Rozbaľovacie pole vo formulári. `.odznak select` nižšie je iná vec —
+   ten sedí v hlavičke karty a šírku si berie od obsahu. */
+.pole select {
+  display: block;
+  width: 100%;
+  min-height: var(--a-dotyk);
+  padding: 0.55rem 0.8rem;
+  font: inherit;
+  font-family: var(--a-text);
+  color: var(--a-ink);
+  background: var(--a-papier-2);
+  border: 1px solid var(--a-linka);
+  border-radius: var(--a-r-2);
 }
 
 .admin input:focus-visible,
@@ -1170,4 +1190,31 @@ body:has(.admin) {
   font-size: 0.82rem;
   line-height: 1.45;
   color: var(--a-ink-2);
+}
+
+/* Rada pod políčkom. Klient nie je technik — pri políčku, ktoré nie je
+   samozrejmé, mu treba povedať, čo doň patrí a čo sa stane, keď ho nechá
+   prázdne. */
+.pole__rada {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--a-ink-2);
+}
+
+/* `.pole` je blok, takže samotné `flex-direction` na ňom nič nerobilo —
+   zaškrtávacie pole sa muselo stať flexom, aby bol štvorček vedľa textu. */
+.pole--zaskrtavacie {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.pole--zaskrtavacie input {
+  width: auto;
+  min-height: 0;
+  margin-top: 0.15rem;
 }

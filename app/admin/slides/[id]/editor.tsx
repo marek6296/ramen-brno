@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import SlideView from "@/app/slides/slide-view";
 import type { Dish, MenuData } from "@/lib/menu";
@@ -34,6 +34,29 @@ const odtlacok = (s: {
   animation: SlideAnimation;
   fields: SlideFields;
 }) => JSON.stringify([s.name, s.variant, s.animation, s.fields]);
+
+/**
+ * Políčko formulára. Popis nad ním, voliteľná rada pod ním. Klient nie je
+ * dizajnér ani technik — keď mu pri políčku nepovieme, načo je, vyplní ho
+ * podľa svojho a diví sa, čo mu vyšlo na stene.
+ */
+function Pole({
+  popis,
+  rada,
+  children,
+}: {
+  popis: string;
+  rada?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="pole">
+      <span className="pole__popis">{popis}</span>
+      {children}
+      {rada && <span className="pole__rada">{rada}</span>}
+    </label>
+  );
+}
 
 function vsetkyJedla(menu: MenuData | null): Dish[] {
   if (!menu) return [];
@@ -140,118 +163,112 @@ export default function Editor({ slide, menu }: { slide: Slide; menu: MenuData |
 
       <div className="karta">
         <h2>Obsah</h2>
-        <label>
-          Názov slidu (len pre teba)
+        <p className="ticho">
+          Čo nevyplníš, to sa na slide neukáže — nezostane po tom prázdne
+          miesto. Anglické riadky sú nepovinné.
+        </p>
+
+        <Pole popis="Názov slidu" rada="Len pre teba v zozname slidov. Na televízore sa neukáže.">
           <input value={name} onChange={(e) => setName(e.target.value)} />
-        </label>
+        </Pole>
 
         {slide.template === "akcia" ? (
           <>
-            <label>
-              Nadpis
+            <Pole popis="Nadpis" rada="Veľký text úplne hore, napríklad „AKCE DNE“.">
               <input value={fa.nadpis} onChange={(e) => uprav({ nadpis: e.target.value })} />
-            </label>
-            <label>
-              Nadpis anglicky (nepovinné)
+            </Pole>
+            <Pole popis="Nadpis anglicky">
               <input value={fa.nadpisEn} onChange={(e) => uprav({ nadpisEn: e.target.value })} />
-            </label>
-            <label>
-              Akciová cena (nepovinné — bežná sa ťahá z ChoiceQR)
+            </Pole>
+            <Pole
+              popis="Akciová cena"
+              rada="Len číslo, napríklad 199. Bežná cena sa vedľa nej preškrtne sama a ťahá sa z ChoiceQR. Keď necháš prázdne, ukáže sa len bežná cena."
+            >
               <input
                 value={fa.akciovaCena}
                 onChange={(e) => uprav({ akciovaCena: e.target.value })}
-                placeholder="napr. 225"
+                placeholder="199"
+                inputMode="numeric"
               />
-            </label>
-            <label>
-              Podtext (nepovinné)
+            </Pole>
+            <Pole popis="Podtext" rada="Malý riadok pod jedlom, napríklad „do 20:00“.">
               <input value={fa.podtext} onChange={(e) => uprav({ podtext: e.target.value })} />
-            </label>
-            <label>
-              Podtext anglicky (nepovinné)
-              <input
-                value={fa.podtextEn}
-                onChange={(e) => uprav({ podtextEn: e.target.value })}
-              />
-            </label>
+            </Pole>
+            <Pole popis="Podtext anglicky">
+              <input value={fa.podtextEn} onChange={(e) => uprav({ podtextEn: e.target.value })} />
+            </Pole>
           </>
         ) : slide.template === "uvitanie" ? (
           <>
-            <label>
-              Názov podniku
+            <Pole popis="Názov podniku" rada="Veľký text v strede slidu.">
               <input value={fu.nazov} onChange={(e) => uprav({ nazov: e.target.value })} />
-            </label>
-            <label>
-              Japonská ozdoba (nepovinné)
+            </Pole>
+            <Pole popis="Japonská ozdoba" rada="Nepovinné. Malý japonský nápis pod názvom.">
               <input
                 value={fu.kana}
                 onChange={(e) => uprav({ kana: e.target.value })}
                 placeholder="ラーメン"
               />
-            </label>
-            <label>
-              Podtitul (nepovinné)
+            </Pole>
+            <Pole popis="Podtitul" rada="Napríklad adresa alebo mesto.">
               <input value={fu.podtitul} onChange={(e) => uprav({ podtitul: e.target.value })} />
-            </label>
-            <label>
-              Podtitul anglicky (nepovinné)
+            </Pole>
+            <Pole popis="Podtitul anglicky">
               <input
                 value={fu.podtitulEn}
                 onChange={(e) => uprav({ podtitulEn: e.target.value })}
               />
-            </label>
+            </Pole>
             <label className="pole pole--zaskrtavacie">
               <input
                 type="checkbox"
                 checked={fu.zobrazitHodiny}
                 onChange={(e) => uprav({ zobrazitHodiny: e.target.checked })}
-                style={{ width: "auto" }}
               />
-              Zobraziť otváraciu dobu (ťahá sa živo z ChoiceQR)
+              <span>
+                Zobraziť otváraciu dobu
+                <span className="pole__rada">
+                  Ťahá sa živo z ChoiceQR — keď ju tam zmeníš, zmení sa aj tu.
+                </span>
+              </span>
             </label>
           </>
         ) : slide.template === "oznamenie" ? (
           <>
-            <label>
-              Odkaz hosťom
+            <Pole popis="Odkaz hosťom" rada="Hlavný text cez celý slide, napríklad „Dnes zavřeno“.">
               <input
                 value={fo.text}
                 onChange={(e) => uprav({ text: e.target.value })}
-                placeholder="napr. Dnes zavřeno"
+                placeholder="Dnes zavřeno"
               />
-            </label>
-            <label>
-              Odkaz anglicky (nepovinné)
+            </Pole>
+            <Pole popis="Odkaz anglicky">
               <input value={fo.textEn} onChange={(e) => uprav({ textEn: e.target.value })} />
-            </label>
-            <label>
-              Podtext (nepovinné)
+            </Pole>
+            <Pole popis="Podtext" rada="Malý riadok pod odkazom, napríklad „Otevíráme v pátek“.">
               <input value={fo.podtext} onChange={(e) => uprav({ podtext: e.target.value })} />
-            </label>
-            <label>
-              Podtext anglicky (nepovinné)
+            </Pole>
+            <Pole popis="Podtext anglicky">
               <input
                 value={fo.podtextEn}
                 onChange={(e) => uprav({ podtextEn: e.target.value })}
               />
-            </label>
+            </Pole>
           </>
         ) : (
           <>
-            <label>
-              Štítok
+            <Pole popis="Štítok" rada="Oranžový odznak nad jedlom.">
               <input
                 value={fn.stitok}
                 onChange={(e) => uprav({ stitok: e.target.value })}
                 placeholder="NOVINKA"
               />
-            </label>
-            <label>
-              Štítok anglicky (nepovinné)
+            </Pole>
+            <Pole popis="Štítok anglicky">
               <input value={fn.stitokEn} onChange={(e) => uprav({ stitokEn: e.target.value })} />
-            </label>
+            </Pole>
             <p className="ticho">
-              Názov, popis aj cena jedla sa ťahajú z ChoiceQR. Vyber ho nižšie.
+              Názov, popis aj cenu jedla ťahá slide z ChoiceQR. Vyber ho nižšie.
             </p>
           </>
         )}
@@ -282,8 +299,7 @@ export default function Editor({ slide, menu }: { slide: Slide; menu: MenuData |
 
       <div className="karta">
         <h2>Vzhľad</h2>
-        <label>
-          Farebný variant
+        <Pole popis="Farebný variant" rada="Tri zladené dvojice farieb z vizuálu podniku.">
           <select
             value={variant}
             onChange={(e) => setVariant(e.target.value as SlideVariant)}
@@ -294,9 +310,8 @@ export default function Editor({ slide, menu }: { slide: Slide; menu: MenuData |
               </option>
             ))}
           </select>
-        </label>
-        <label>
-          Animácia
+        </Pole>
+        <Pole popis="Animácia" rada="Ako sa obsah slidu objaví, keď na neho príde rad.">
           <select
             value={animation}
             onChange={(e) => setAnimation(e.target.value as SlideAnimation)}
@@ -307,7 +322,7 @@ export default function Editor({ slide, menu }: { slide: Slide; menu: MenuData |
               </option>
             ))}
           </select>
-        </label>
+        </Pole>
       </div>
 
       <div className="lista">
