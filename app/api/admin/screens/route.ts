@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getStore } from "@/lib/storage";
 import { normalizeSlug } from "@/lib/storage/slug";
 import { isLoggedIn } from "@/lib/session";
+import { DuplicateSlugError, NotFoundError } from "@/lib/storage/types";
 import type { Orientation } from "@/lib/storage/types";
 
 export async function GET() {
@@ -43,9 +44,17 @@ export async function POST(req: Request) {
       { status: 201 },
     );
   } catch (e) {
+    // Stav určuje trieda chyby, nie znenie hlášky — text sa môže zmeniť,
+    // trieda je záväzná pre každú implementáciu úložiska.
+    if (e instanceof NotFoundError) {
+      return NextResponse.json({ error: e.message }, { status: 404 });
+    }
+    if (e instanceof DuplicateSlugError) {
+      return NextResponse.json({ error: e.message }, { status: 409 });
+    }
     return NextResponse.json(
-      { error: String(e instanceof Error ? e.message : e) },
-      { status: 409 },
+      { error: "Obrazovku sa nepodarilo založiť" },
+      { status: 500 },
     );
   }
 }

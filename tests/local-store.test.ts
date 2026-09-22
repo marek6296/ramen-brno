@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createLocalStore } from "@/lib/storage/local";
+import { DuplicateSlugError, NotFoundError } from "@/lib/storage/types";
 import type { Store } from "@/lib/storage/types";
 
 let dir: string;
@@ -37,7 +38,7 @@ describe("lokálne úložisko", () => {
     await store.createScreen({ name: "A", slug: "tv", orientation: "landscape" });
     await expect(
       store.createScreen({ name: "B", slug: "tv", orientation: "portrait" }),
-    ).rejects.toThrow(/slug/i);
+    ).rejects.toThrow(DuplicateSlugError);
   });
 
   it("úprava posunie updatedAt", async () => {
@@ -69,7 +70,7 @@ describe("lokálne úložisko", () => {
 
   it("úprava neexistujúcej obrazovky padne", async () => {
     await expect(store.updateScreen("nieje", { name: "X" })).rejects.toThrow(
-      /nenájden/i,
+      NotFoundError,
     );
   });
 });

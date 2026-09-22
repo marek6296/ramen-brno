@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@/lib/storage";
 import { isLoggedIn } from "@/lib/session";
+import { DuplicateSlugError, NotFoundError } from "@/lib/storage/types";
 import type { PlaylistItem, ScreenPatch } from "@/lib/storage/types";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -40,8 +41,15 @@ export async function PATCH(req: Request, { params }: Ctx) {
   try {
     return NextResponse.json(await getStore().updateScreen(id, patch));
   } catch (e) {
-    const msg = String(e instanceof Error ? e.message : e);
-    return NextResponse.json({ error: msg }, { status: /nenájden/i.test(msg) ? 404 : 409 });
+    // Stav určuje trieda chyby, nie znenie hlášky — text sa môže zmeniť,
+    // trieda je záväzná pre každú implementáciu úložiska.
+    if (e instanceof NotFoundError) {
+      return NextResponse.json({ error: e.message }, { status: 404 });
+    }
+    if (e instanceof DuplicateSlugError) {
+      return NextResponse.json({ error: e.message }, { status: 409 });
+    }
+    return NextResponse.json({ error: "Obrazovku sa nepodarilo uložiť" }, { status: 500 });
   }
 }
 

@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { DuplicateSlugError, NotFoundError } from "./types";
 import type { NewScreen, Screen, ScreenPatch, Store } from "./types";
 
 type Data = { screens: Screen[] };
@@ -47,7 +48,7 @@ export function createLocalStore(dir: string): Store {
     async createScreen(input: NewScreen) {
       const data = await read();
       if (data.screens.some((s) => s.slug === input.slug)) {
-        throw new Error(`Obrazovka so slugom „${input.slug}" už existuje`);
+        throw new DuplicateSlugError(input.slug);
       }
       const screen: Screen = {
         id: randomUUID(),
@@ -65,12 +66,12 @@ export function createLocalStore(dir: string): Store {
     async updateScreen(id, patch: ScreenPatch) {
       const data = await read();
       const i = data.screens.findIndex((s) => s.id === id);
-      if (i === -1) throw new Error("Obrazovka nenájdená");
+      if (i === -1) throw new NotFoundError();
       if (
         patch.slug &&
         data.screens.some((s) => s.slug === patch.slug && s.id !== id)
       ) {
-        throw new Error(`Obrazovka so slugom „${patch.slug}" už existuje`);
+        throw new DuplicateSlugError(patch.slug);
       }
       const updated: Screen = {
         ...data.screens[i],

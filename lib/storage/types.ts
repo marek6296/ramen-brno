@@ -36,6 +36,31 @@ export type ScreenPatch = Partial<{
 }>;
 
 /**
+ * Chyby úložiska majú vlastné triedy zámerne. Routy z nich určujú HTTP stav
+ * (404 / 409) cez `instanceof`, nie hádaním zo znenia hlášky — text sa dá
+ * prepísať alebo preložiť, trieda nie. Každá ďalšia implementácia `Store`
+ * (v 2. etape Supabase) MUSÍ hádzať práve tieto triedy, inak by admin začal
+ * na neexistujúcu obrazovku vracať 409 namiesto 404.
+ */
+export class NotFoundError extends Error {
+  constructor(message = "Obrazovka nenájdená") {
+    super(message);
+    this.name = "NotFoundError";
+  }
+}
+
+export class DuplicateSlugError extends Error {
+  /** adresa, ktorá je už obsadená */
+  readonly slug: string;
+
+  constructor(slug: string) {
+    super(`Obrazovka so slugom „${slug}" už existuje`);
+    this.name = "DuplicateSlugError";
+    this.slug = slug;
+  }
+}
+
+/**
  * Jediné miesto, cez ktoré sa siaha na dáta. V 2. etape pribudne
  * implementácia nad Supabase; nič iné sa kvôli tomu meniť nebude.
  */
