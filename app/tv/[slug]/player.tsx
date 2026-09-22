@@ -5,13 +5,21 @@ import Board from "@/app/board";
 import BoardPortrait from "@/app/board-portrait";
 import type { MenuData } from "@/lib/menu";
 import type { Screen } from "@/lib/storage/types";
+import type { Slide } from "@/lib/slides/types";
 import "./player.css";
 
 /** ako často sa TV pýta, či klient niečo nezmenil */
 const DOPYT_MS = 15_000;
 
-export default function Player({ initial }: { initial: Screen }) {
+export default function Player({
+  initial,
+  initialSlides,
+}: {
+  initial: Screen;
+  initialSlides: Record<string, Slide>;
+}) {
   const [screen, setScreen] = useState(initial);
+  const [slides, setSlides] = useState(initialSlides);
   const [menu, setMenu] = useState<MenuData | null>(null);
   const [index, setIndex] = useState(0);
   const [bezKurzora, setBezKurzora] = useState(false);
@@ -33,8 +41,16 @@ export default function Player({ initial }: { initial: Screen }) {
       try {
         const r = await fetch(`/api/screens/${screen.slug}`, { cache: "no-store" });
         if (!r.ok) return;
-        const fresh = (await r.json()) as Screen;
-        setScreen((stary) => (fresh.updatedAt !== stary.updatedAt ? fresh : stary));
+        const data = (await r.json()) as { screen: Screen; slides: Record<string, Slide> };
+        setScreen((stary) =>
+          data.screen.updatedAt !== stary.updatedAt ? data.screen : stary,
+        );
+        // Slidy sa menia nezávisle od obrazovky — porovnávame ich zvlášť,
+        // inak by úprava slidu na TV nedošla, kým sa nezmení aj obrazovka.
+        setSlides((stare) => {
+          const novy = JSON.stringify(data.slides);
+          return novy === JSON.stringify(stare) ? stare : data.slides;
+        });
       } catch {
         /* výpadok siete nesmie zhodiť obrazovku — skúsime o 15 s znova */
       }
