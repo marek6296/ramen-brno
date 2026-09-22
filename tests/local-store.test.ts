@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createLocalStore } from "@/lib/storage/local";
-import { skontrolujStore } from "./store-kontrakt.test";
+import { skontrolujStore } from "./store-kontrakt";
 
 // Spoločná sada pre každú implementáciu `Store`. Tá istá sa v ďalšom kroku
 // spustí nad Supabase — a hneď ukáže, či sa správa rovnako.
