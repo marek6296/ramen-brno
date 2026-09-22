@@ -20,3 +20,6 @@ tsconfig.tsbuildinfo
 
 # lokálne úložisko obrazoviek počas vývoja
 .data
+
+# záloha lokálneho úložiska spred prechodu na Supabase (patrí len na tento stroj)
+.data-zaloha-pred-supabase
