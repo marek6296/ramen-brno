@@ -109,9 +109,9 @@ Beží nad lokálnym úložiskom, takže sa dá postaviť a odskúšať hneď.
   a skrývanie kurzora ako na súčasnej TV
 - TV sa každých ~15 s pýta, či sa nastavenia nezmenili; keď áno, prispôsobí sa
 
-**Hotovo, keď:** po prihlásení sa dá vytvoriť obrazovka, nahrať obrázok,
-zostaviť sled s menu aj obrázkom, otvoriť adresu obrazovky a vidieť, ako sa
-striedajú — a `/` medzitým beží nezmenené.
+**Hotovo, keď:** po prihlásení sa dá vytvoriť obrazovka, zostaviť sled z menu
+a ukážkových slidov, otvoriť adresu obrazovky na TV a vidieť, ako sa striedajú;
+zmena v adminovi sa na TV prejaví sama — a `/` medzitým beží nezmenené.
 
 Obrazovka na výšku v tejto etape zvládne obrázky; menu na výšku príde v 3. etape.
 
