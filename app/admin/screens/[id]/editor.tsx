@@ -9,6 +9,7 @@ import type { MediaFile } from "@/lib/media-typy";
 import type {
   Orientation,
   PlaylistItem,
+  Rotation,
   Screen,
   Transition,
 } from "@/lib/storage/types";
@@ -38,10 +39,29 @@ const POPIS_ORIENTACIE: Record<Orientation, string> = {
   portrait: "na výšku",
 };
 
+/** popisky otočenia pre obsluhu — poradie je aj poradím v ponuke */
+const OTOCENIA: { hodnota: Rotation; popis: string }[] = [
+  { hodnota: "right", popis: "doprava" },
+  { hodnota: "left", popis: "doľava" },
+  { hodnota: "none", popis: "neotáčať (TV si to otočí sama)" },
+];
+
+/**
+ * Otáča sa len doska na výšku — tá na šírku sedí v okne televízora tak, ako
+ * je. Pri prepnutí na výšku preto rovno ponúkneme otočenie doprava, pri
+ * prepnutí na šírku sa otáčanie vypína.
+ */
+const otocenieK = (o: Orientation): Rotation =>
+  o === "portrait" ? "right" : "none";
+
 /** Odtlačok stavu, ktorý sa ukladá. Lepiaca lišta podľa neho pozná, či má
  *  čo hlásiť — bez toho by svietila „neuložené" aj po uložení. */
-const odtlacok = (n: string, o: Orientation, it: PlaylistItem[]) =>
-  JSON.stringify({ n, o, it });
+const odtlacok = (
+  n: string,
+  o: Orientation,
+  r: Rotation,
+  it: PlaylistItem[],
+) => JSON.stringify({ n, o, r, it });
 
 /** stav ťahania položky sledu prstom alebo myšou */
 type Tah = {
@@ -78,17 +98,18 @@ export default function Editor({
 }) {
   const [name, setName] = useState(screen.name);
   const [orientation, setOrientation] = useState<Orientation>(screen.orientation);
+  const [rotation, setRotation] = useState<Rotation>(screen.rotation);
   const [items, setItems] = useState<PlaylistItem[]>(screen.items);
   const [slug, setSlug] = useState(screen.slug);
 
   /* Ukladanie: `ulozeny` je odtlačok toho, čo naozaj leží na serveri. */
   const [ulozeny, setUlozeny] = useState(() =>
-    odtlacok(screen.name, screen.orientation, screen.items),
+    odtlacok(screen.name, screen.orientation, screen.rotation, screen.items),
   );
   const [uklada, setUklada] = useState(false);
   const [uloziloSa, setUloziloSa] = useState(false);
   const [chybaUloz, setChybaUloz] = useState("");
-  const neulozene = odtlacok(name, orientation, items) !== ulozeny;
+  const neulozene = odtlacok(name, orientation, rotation, items) !== ulozeny;
 
   /* Zoznam médií prišiel zo servera, ale po nahratí alebo zmazaní si ho
      ťaháme znova z `/api/admin/media` — bez toho by sa nový súbor ukázal až
@@ -300,7 +321,7 @@ export default function Editor({
   async function uloz() {
     setUklada(true);
     setChybaUloz("");
-    const posielane = { name, orientation, items };
+    const posielane = { name, orientation, rotation, items };
     try {
       const r = await fetch(`/api/admin/screens/${screen.id}`, {
         method: "PATCH",
@@ -313,7 +334,14 @@ export default function Editor({
         return;
       }
       setSlug((data as Screen).slug); // adresa sa nemení, len si držíme pravdu zo servera
-      setUlozeny(odtlacok(posielane.name, posielane.orientation, posielane.items));
+      setUlozeny(
+        odtlacok(
+          posielane.name,
+          posielane.orientation,
+          posielane.rotation,
+          posielane.items,
+        ),
+      );
       setUloziloSa(true);
     } catch {
       setChybaUloz("Server neodpovedal — skús to znova");
@@ -360,13 +388,43 @@ export default function Editor({
             <span className="odznak">
               <select
                 value={orientation}
-                onChange={(e) => setOrientation(e.target.value as Orientation)}
+                onChange={(e) => {
+                  const nova = e.target.value as Orientation;
+                  setOrientation(nova);
+                  setRotation(otocenieK(nova));
+                }}
               >
                 <option value="landscape">na šírku</option>
                 <option value="portrait">na výšku</option>
               </select>
             </span>
           </label>
+          {/* Otočenie má zmysel len na výšku — doska na šírku sedí v okne
+              televízora tak, ako je. */}
+          {orientation === "portrait" && (
+            <label className="pole">
+              <span className="pole__popis">Otočenie obrazu</span>
+              <span className="odznak">
+                <select
+                  value={rotation}
+                  onChange={(e) => setRotation(e.target.value as Rotation)}
+                >
+                  {OTOCENIA.map((o) => (
+                    <option key={o.hodnota} value={o.hodnota}>
+                      {o.popis}
+                    </option>
+                  ))}
+                </select>
+              </span>
+              {/* `pole__popis` je verzálkový popis poľa, na vetu sa nehodí —
+                  vysvetlenie preto ide tichým textom, ako inde v adminovi. */}
+              <span className="ticho" style={{ display: "block", marginTop: "0.4rem" }}>
+                Televízor zavesený na výšku posiela obraz na šírku, preto
+                otáčame stránku. Keď je obraz hore nohami, prepni na druhú
+                stranu.
+              </span>
+            </label>
+          )}
         </div>
         <p className="adresa">
           <span className="adresa__text">/tv/{slug}</span>

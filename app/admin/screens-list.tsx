@@ -3,7 +3,27 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Orientation, PlaylistItem, Screen } from "@/lib/storage/types";
+import type {
+  Orientation,
+  PlaylistItem,
+  Rotation,
+  Screen,
+} from "@/lib/storage/types";
+
+/** popisky otočenia pre obsluhu — poradie je aj poradím v ponuke */
+const OTOCENIA: { hodnota: Rotation; popis: string }[] = [
+  { hodnota: "right", popis: "doprava" },
+  { hodnota: "left", popis: "doľava" },
+  { hodnota: "none", popis: "neotáčať (TV si to otočí sama)" },
+];
+
+/**
+ * Otáča sa len doska na výšku — tá na šírku sedí v okne televízora tak, ako
+ * je. Pri prepnutí na výšku preto rovno ponúkneme otočenie doprava (tak visia
+ * obe televízie klienta), pri prepnutí na šírku sa otáčanie vypína.
+ */
+const otocenieK = (o: Orientation): Rotation =>
+  o === "portrait" ? "right" : "none";
 
 /** slovenské počítanie položiek — „1 položka / 2 položky / 5 položiek" */
 function pocetPoloziek(n: number) {
@@ -45,11 +65,12 @@ export default function ScreensList({ initial }: { initial: Screen[] }) {
   const [screens, setScreens] = useState(initial);
   const [name, setName] = useState("");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
+  const [rotation, setRotation] = useState<Rotation>("none");
   const [chyba, setChyba] = useState("");
   /* Prepínanie orientácie beží pre každú obrazovku zvlášť, preto si stav
      držíme podľa id — inak by jedna prebiehajúca zmena zablokovala všetky. */
   const [prepinaSa, setPrepinaSa] = useState<Record<string, boolean>>({});
-  const [chybaOrientacie, setChybaOrientacie] = useState<Record<string, string>>({});
+  const [chybaZmeny, setChybaZmeny] = useState<Record<string, string>>({});
   /* Mazanie je dvojkrokové: prvé ťuknutie sa spýta, druhé zmaže. Modálne
      `confirm()` sa na telefóne v zhone preklikne bez čítania. */
   const [pytaSaNaZmazanie, setPytaSaNaZmazanie] = useState<string | null>(null);
@@ -72,7 +93,7 @@ export default function ScreensList({ initial }: { initial: Screen[] }) {
     const r = await fetch("/api/admin/screens", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name, orientation }),
+      body: JSON.stringify({ name, orientation, rotation }),
     });
     const data = await r.json();
     if (!r.ok) {
@@ -83,23 +104,25 @@ export default function ScreensList({ initial }: { initial: Screen[] }) {
     setName("");
   }
 
-  /* Orientáciu sa dá prepnúť priamo v zozname — klient ju mení najčastejšie
-     a nechce kvôli tomu chodiť do detailu obrazovky. */
-  async function zmenOrientaciu(s: Screen, nova: Orientation) {
-    if (nova === s.orientation) return;
+  /* Orientáciu aj otočenie sa dá prepnúť priamo v zozname — klient ich mení
+     najčastejšie a nechce kvôli tomu chodiť do detailu obrazovky. */
+  async function uprav(
+    s: Screen,
+    zmena: { orientation?: Orientation; rotation?: Rotation },
+  ) {
     setPrepinaSa((z) => ({ ...z, [s.id]: true }));
-    setChybaOrientacie((z) => ({ ...z, [s.id]: "" }));
+    setChybaZmeny((z) => ({ ...z, [s.id]: "" }));
     try {
       const r = await fetch(`/api/admin/screens/${s.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ orientation: nova }),
+        body: JSON.stringify(zmena),
       });
       const data = await r.json();
       if (!r.ok) {
-        setChybaOrientacie((z) => ({
+        setChybaZmeny((z) => ({
           ...z,
-          [s.id]: data.error ?? "Orientáciu sa nepodarilo zmeniť",
+          [s.id]: data.error ?? "Zmenu sa nepodarilo uložiť",
         }));
         return;
       }
@@ -108,13 +131,21 @@ export default function ScreensList({ initial }: { initial: Screen[] }) {
         zoznam.map((x) => (x.id === s.id ? (data as Screen) : x)),
       );
     } catch {
-      setChybaOrientacie((z) => ({
+      setChybaZmeny((z) => ({
         ...z,
         [s.id]: "Server neodpovedal — skús to znova",
       }));
     } finally {
       setPrepinaSa((z) => ({ ...z, [s.id]: false }));
     }
+  }
+
+  /* Orientácia a otočenie chodia jedným zápisom: doska na šírku sa neotáča
+     nikdy, takže by inak medzi dvoma zápismi ostala obrazovka na chvíľu
+     otočená na šírku — teda bokom. */
+  function zmenOrientaciu(s: Screen, nova: Orientation) {
+    if (nova === s.orientation) return;
+    return uprav(s, { orientation: nova, rotation: otocenieK(nova) });
   }
 
   async function zmaz(s: Screen) {
@@ -175,9 +206,29 @@ export default function ScreensList({ initial }: { initial: Screen[] }) {
                 <option value="portrait">na výšku</option>
               </select>
             </span>
+            {/* Otočenie má zmysel len na výšku — doska na šírku sedí v okne
+                televízora tak, ako je. */}
+            {s.orientation === "portrait" && (
+              <span className="odznak">
+                <select
+                  aria-label={`Otočenie obrazu obrazovky ${s.name}`}
+                  value={s.rotation}
+                  disabled={prepinaSa[s.id] === true}
+                  onChange={(e) =>
+                    uprav(s, { rotation: e.target.value as Rotation })
+                  }
+                >
+                  {OTOCENIA.map((o) => (
+                    <option key={o.hodnota} value={o.hodnota}>
+                      {o.popis}
+                    </option>
+                  ))}
+                </select>
+              </span>
+            )}
           </div>
 
-          {chybaOrientacie[s.id] && <p className="chyba">{chybaOrientacie[s.id]}</p>}
+          {chybaZmeny[s.id] && <p className="chyba">{chybaZmeny[s.id]}</p>}
 
           {s.items.length === 0 ? (
             <p className="ticho" style={{ marginTop: "0.85rem" }}>
@@ -243,13 +294,34 @@ export default function ScreensList({ initial }: { initial: Screen[] }) {
             <span className="odznak">
               <select
                 value={orientation}
-                onChange={(e) => setOrientation(e.target.value as Orientation)}
+                onChange={(e) => {
+                  const nova = e.target.value as Orientation;
+                  setOrientation(nova);
+                  setRotation(otocenieK(nova));
+                }}
               >
                 <option value="landscape">na šírku</option>
                 <option value="portrait">na výšku</option>
               </select>
             </span>
           </label>
+          {orientation === "portrait" && (
+            <label className="pole">
+              <span className="pole__popis">Otočenie obrazu</span>
+              <span className="odznak">
+                <select
+                  value={rotation}
+                  onChange={(e) => setRotation(e.target.value as Rotation)}
+                >
+                  {OTOCENIA.map((o) => (
+                    <option key={o.hodnota} value={o.hodnota}>
+                      {o.popis}
+                    </option>
+                  ))}
+                </select>
+              </span>
+            </label>
+          )}
         </div>
         {chyba && <p className="chyba">{chyba}</p>}
         <button className="tl tl--hlavne tl--siroke" disabled={!name.trim()}>
