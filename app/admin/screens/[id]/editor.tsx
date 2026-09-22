@@ -11,12 +11,21 @@ import type {
 } from "@/lib/storage/types";
 
 /** popisky prechodov pre obsluhu — poradie je aj poradím v ponuke */
-const PRECHODY: { hodnota: Transition; popis: string }[] = [
-  { hodnota: "fade", popis: "Prelínanie" },
-  { hodnota: "slide", popis: "Posun" },
-  { hodnota: "zoom", popis: "Priblíženie" },
-  { hodnota: "none", popis: "Bez prechodu" },
+const PRECHODY: { hodnota: Transition; popis: string; posuva: boolean }[] = [
+  { hodnota: "fade", popis: "Prelínanie", posuva: false },
+  { hodnota: "slide", popis: "Posun", posuva: true },
+  { hodnota: "zoom", popis: "Priblíženie", posuva: true },
+  { hodnota: "none", popis: "Bez prechodu", posuva: false },
 ];
+
+/**
+ * Menu si po zobrazení meria vlastné rozmery, aby sa rozhodlo, či zhustiť
+ * sadzbu. Posun a priblíženie mu tie rozmery skreslia, takže ich prehrávač
+ * pri menu ignoruje. Radšej ich teda vôbec neponúkame, než aby klient vyberal
+ * niečo, čo sa potom potichu nepoužije.
+ */
+const prechodyPre = (kind: PlaylistItem["kind"]) =>
+  kind === "menu" ? PRECHODY.filter((p) => !p.posuva) : PRECHODY;
 
 export default function Editor({
   screen,
@@ -153,7 +162,7 @@ export default function Editor({
                 value={i.transition}
                 onChange={(e) => prechod(i.id, e.target.value as Transition)}
               >
-                {PRECHODY.map((p) => (
+                {prechodyPre(i.kind).map((p) => (
                   <option key={p.hodnota} value={p.hodnota}>
                     {p.popis}
                   </option>
