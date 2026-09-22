@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
-  <rect width="1920" height="1080" fill="#14110f"/>
-  <text x="960" y="430" text-anchor="middle" font-family="Roboto, Arial, sans-serif"
-        font-size="120" font-weight="900" fill="#f4f2ec" letter-spacing="10">OTEVÍRACÍ DOBA</text>
-  <text x="960" y="620" text-anchor="middle" font-family="Roboto, Arial, sans-serif"
-        font-size="140" font-weight="700" fill="#d9741a">11:00 — 20:00</text>
-  <text x="960" y="760" text-anchor="middle" font-family="Roboto, Arial, sans-serif"
-        font-size="56" fill="#6b6459" letter-spacing="16">PO — NE</text>
-</svg>

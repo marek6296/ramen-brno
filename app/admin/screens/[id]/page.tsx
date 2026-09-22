@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getStore } from "@/lib/storage";
 import { isLoggedIn } from "@/lib/session";
-import { DEMO_SLIDES } from "@/lib/demo-slides";
 import { listMedia, mediaJeDostupne } from "@/lib/media";
 import { getSlideStore } from "@/lib/slides";
 import Editor from "./editor";
@@ -34,7 +33,6 @@ export default async function ScreenPage({
   return (
     <Editor
       screen={screen}
-      slides={DEMO_SLIDES}
       slidy={slidyZoznam}
       media={media}
       mediaDostupne={dostupne}

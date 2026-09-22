@@ -698,17 +698,6 @@ body:has(.admin) {
   padding: 0;
 }
 
-/* Slidy pre inú orientáciu ostávajú v tej istej mriežke — len stlmené
-   a so štítkom. Klikateľné zostávajú, klient to občas chce. */
-.dlazdica--inak {
-  opacity: 0.45;
-}
-
-.dlazdica--inak:hover,
-.dlazdica--inak:focus-within {
-  opacity: 1;
-}
-
 .dlazdica__stitok {
   position: absolute;
   top: 0.3rem;

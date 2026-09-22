@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import type { DemoSlide } from "@/lib/demo-slides";
 // ZÁMERNE z `lib/media-typy`, nie z `lib/media`: ten druhý siaha na service
 // role kľúč a je výhradne serverový, tu je len tvar dát.
 import type { MediaFile } from "@/lib/media-typy";
@@ -34,11 +33,6 @@ const prechodyPre = (kind: PlaylistItem["kind"]) =>
 
 /** veľkosť v MB na jedno desatinné miesto — bajty obsluhe nič nepovedia */
 const vMB = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`;
-
-const POPIS_ORIENTACIE: Record<Orientation, string> = {
-  landscape: "na šírku",
-  portrait: "na výšku",
-};
 
 /** popisky otočenia pre obsluhu — poradie je aj poradím v ponuke */
 const OTOCENIA: { hodnota: Rotation; popis: string }[] = [
@@ -88,13 +82,11 @@ export function citatelnyNazov(nazov?: string): string | undefined {
 
 export default function Editor({
   screen,
-  slides,
   slidy,
   media,
   mediaDostupne,
 }: {
   screen: Screen;
-  slides: DemoSlide[];
   slidy: Slide[];
   media: MediaFile[];
   mediaDostupne: boolean;
@@ -132,13 +124,6 @@ export default function Editor({
       // `repeats` a `slideId` nesie každá položka, aby typ sedel; využije ich
       // len video, resp. slide
       { id: novyId(), kind: "menu", mediaPath: "", durationS: 30, transition: "fade", repeats: 1, slideId: "" },
-    ]);
-  }
-
-  function pridajUkazkovySlide(path: string) {
-    setItems((z) => [
-      ...z,
-      { id: novyId(), kind: "image", mediaPath: path, durationS: 10, transition: "fade", repeats: 1, slideId: "" },
     ]);
   }
 
@@ -378,8 +363,7 @@ export default function Editor({
       ? "Menu (živé z ChoiceQR)"
       : i.kind === "slide"
         ? (slidy.find((s) => s.id === i.slideId)?.name ?? "Zmazaný slide")
-        : (slides.find((s) => s.path === i.mediaPath)?.label ??
-          citatelnyNazov(mediaZoznam.find((m) => m.url === i.mediaPath)?.name) ??
+        : (citatelnyNazov(mediaZoznam.find((m) => m.url === i.mediaPath)?.name) ??
           i.mediaPath);
 
   return (
@@ -622,38 +606,6 @@ export default function Editor({
               <span className="dlazdica__nazov">{s.name}</span>
             </button>
           ))}
-
-        </div>
-
-        <p className="zdroje__nadpis">Ukážkové obrázky</p>
-        <div className="mriezka">
-          {slides.map((s) => {
-            const sedi = s.orientation === orientation;
-            return (
-              <button
-                type="button"
-                key={s.path}
-                className={sedi ? "dlazdica" : "dlazdica dlazdica--inak"}
-                onClick={() => pridajUkazkovySlide(s.path)}
-                title={
-                  sedi
-                    ? s.label
-                    : `${s.label} — slide je ${POPIS_ORIENTACIE[s.orientation]}, obrazovka ${POPIS_ORIENTACIE[orientation]}`
-                }
-              >
-                <span className="dlazdica__obraz">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={s.path} alt="" />
-                </span>
-                {!sedi && (
-                  <span className="dlazdica__stitok">
-                    {POPIS_ORIENTACIE[s.orientation]}
-                  </span>
-                )}
-                <span className="dlazdica__popis">{s.label}</span>
-              </button>
-            );
-          })}
 
         </div>
 
