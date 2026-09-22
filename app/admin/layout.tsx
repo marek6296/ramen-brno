@@ -27,7 +27,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           až po prvom vykreslení. */}
       <link href={PISMA} rel="stylesheet" precedence="default" />
       <div className="admin">
-        <div className="admin__obal">{children}</div>
+        <div className="admin__obal">
+          <nav className="admin__nav">
+            <a href="/admin">Obrazovky</a>
+            <a href="/admin/slides">Slidy</a>
+          </nav>
+          {children}
+        </div>
       </div>
     </>
   );

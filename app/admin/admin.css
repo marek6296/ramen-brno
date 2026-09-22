@@ -1065,3 +1065,38 @@ body:has(.admin) {
     transition: none !important;
   }
 }
+
+/* Prepínanie medzi sekciami adminu. Leží na tmavom obale, nie na karte. */
+.admin__nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+.admin__nav a {
+  flex: 1 1 0;
+  text-align: center;
+  padding: 0.85rem 1rem;
+  border-radius: 0.7rem;
+  background: var(--a-cierna-2);
+  color: var(--a-papier);
+  text-decoration: none;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(250, 247, 240, 0.08);
+}
+.admin__nav a:hover { border-color: var(--a-oranz); }
+
+/* Rámik náhľadu slidu. Samotný `.slide` je `position: absolute; inset: 0`
+   a počíta z veľkosti vlastného kontajnera, takže tu stačí dať mu pevný
+   pomer strán a polohu, od ktorej sa má odraziť. Vďaka tomu vyzerá náhľad
+   presne ako obraz na televízore, len menší. */
+.nahlad {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0.7rem;
+  border: 1px solid var(--a-linka);
+  background: var(--a-cierna-2);
+}
+.nahlad--landscape { aspect-ratio: 16 / 9; }
+.nahlad--portrait  { aspect-ratio: 9 / 16; }
