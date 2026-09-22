@@ -1,0 +1,156 @@
+/* Produkčné globals.css zamyká stránku na celú obrazovku bez rolovania —
+   pre TV správne, pre admin nie. Odomykáme to len tam, kde je admin obal,
+   aby sa produkčný súbor nemusel meniť. */
+/* `globals.css` zamyká stránku na výšku okna bez rolovania — na televízore
+   správne, v adminovi nie. Odomknúť treba OBA prvky: `overflow: hidden` na
+   `html` odreže obsah aj vtedy, keď `body` rolovať smie. */
+html:has(.admin),
+body:has(.admin) {
+  height: auto;
+  /* bez min-height by pod obsahom presvital tmavý podklad z globals.css */
+  min-height: 100vh;
+  overflow: auto;
+  background: #f4f2ec;
+}
+
+.admin {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 6rem;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #14110f;
+}
+
+.admin a { color: #a8500c; }
+
+.admin__hlavicka {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid rgba(20, 17, 15, 0.15);
+  padding-bottom: 0.75rem;
+}
+
+.admin__hlavicka h1 { font-size: 1.5rem; letter-spacing: 0.02em; }
+
+.karta {
+  background: #fff;
+  border: 1px solid rgba(20, 17, 15, 0.12);
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.karta--uzka { max-width: 24rem; margin: 4rem auto; }
+
+.karta h1, .karta h2 { margin-bottom: 1rem; font-size: 1.15rem; }
+
+.admin label {
+  display: block;
+  margin-bottom: 0.9rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b6459;
+}
+
+.admin input,
+.admin select {
+  display: block;
+  width: 100%;
+  margin-top: 0.3rem;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  color: #14110f;
+  background: #fff;
+  border: 1px solid rgba(20, 17, 15, 0.25);
+  border-radius: 0.35rem;
+}
+
+.admin button {
+  font: inherit;
+  padding: 0.6rem 1.1rem;
+  border: none;
+  border-radius: 0.35rem;
+  background: #14110f;
+  color: #f4f2ec;
+  cursor: pointer;
+}
+
+.admin button[disabled] { opacity: 0.5; cursor: default; }
+.admin button.vedlajsie { background: transparent; color: #14110f; border: 1px solid rgba(20, 17, 15, 0.3); }
+.admin button.zle { background: #b23b18; }
+
+.riadok { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+
+/* Polia vnútri riadka patria do riadka — bez tohto ich pravidlo pre formuláre
+   roztiahne na celú šírku a rozhádže ovládanie položiek v slede. */
+.riadok input,
+.riadok select {
+  display: inline-block;
+  width: auto;
+  margin-top: 0;
+}
+.riadok select { max-width: 11rem; }
+.riadok--medzi { justify-content: space-between; }
+
+.chyba { color: #b23b18; margin-bottom: 0.75rem; }
+.ticho { color: #6b6459; font-size: 0.9rem; }
+
+.odkaz-tv {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  background: #f4f2ec;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.25rem;
+  word-break: break-all;
+}
+
+/* Zoznam nahratých médií. Náhľad je zámerne malý — v adminovi ide o to,
+   spoznať správny súbor, nie si ho prezerať. */
+.media {
+  list-style: none;
+  margin-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.media__polozka {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.5rem;
+  background: #f4f2ec;
+  border-radius: 0.35rem;
+}
+
+.media__nahlad {
+  width: 4.5rem;
+  height: 3rem;
+  object-fit: contain;
+  flex: none;
+  background: #fff;
+  border: 1px solid rgba(20, 17, 15, 0.15);
+  border-radius: 0.25rem;
+}
+
+/* Video náhľad nekreslíme — televízor by si aj v adminovi stiahol celý
+   súbor. Stačí ikona, že ide o video. */
+.media__nahlad--video {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b6459;
+}
+
+.media__nazov {
+  flex: 1 1 10rem;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
