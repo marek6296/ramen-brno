@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import type { DemoSlide } from "@/lib/slides";
+// ZÁMERNE z `lib/media-typy`, nie z `lib/media`: ten druhý siaha na service
+// role kľúč a je výhradne serverový, tu je len tvar dát.
+import type { MediaFile } from "@/lib/media-typy";
 import type {
   Orientation,
   PlaylistItem,
@@ -27,18 +30,33 @@ const PRECHODY: { hodnota: Transition; popis: string; posuva: boolean }[] = [
 const prechodyPre = (kind: PlaylistItem["kind"]) =>
   kind === "menu" ? PRECHODY.filter((p) => !p.posuva) : PRECHODY;
 
+/** veľkosť v MB na jedno desatinné miesto — bajty obsluhe nič nepovedia */
+const vMB = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`;
+
 export default function Editor({
   screen,
   slides,
+  media,
+  mediaDostupne,
 }: {
   screen: Screen;
   slides: DemoSlide[];
+  media: MediaFile[];
+  mediaDostupne: boolean;
 }) {
   const [name, setName] = useState(screen.name);
   const [orientation, setOrientation] = useState<Orientation>(screen.orientation);
   const [items, setItems] = useState<PlaylistItem[]>(screen.items);
   const [slug, setSlug] = useState(screen.slug);
   const [stav, setStav] = useState("");
+
+  /* Zoznam médií prišiel zo servera, ale po nahratí alebo zmazaní si ho
+     ťaháme znova z `/api/admin/media` — bez toho by sa nový súbor ukázal až
+     po obnovení stránky. */
+  const [mediaZoznam, setMediaZoznam] = useState<MediaFile[]>(media);
+  const [nahravam, setNahravam] = useState(false);
+  const [mediaStav, setMediaStav] = useState("");
+  const vyberSuboru = useRef<HTMLInputElement>(null);
 
   function novyId() {
     return `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
@@ -56,6 +74,82 @@ export default function Editor({
       ...z,
       { id: novyId(), kind: "image", mediaPath: path, durationS: 10, transition: "fade" },
     ]);
+  }
+
+  function pridajMedium(m: MediaFile) {
+    setItems((z) => [
+      ...z,
+      {
+        id: novyId(),
+        kind: m.kind,
+        // do sledu ide VEREJNÁ adresa, nie názov v buckete — televízor si
+        // súbor ťahá priamo zo Supabase, bez nášho servera medzi tým
+        mediaPath: m.url,
+        // video nech stihne aspoň raz dobehnúť, obrázok sa prečíta rýchlejšie
+        durationS: m.kind === "video" ? 15 : 10,
+        transition: "fade",
+      },
+    ]);
+  }
+
+  async function obnovMedia() {
+    const r = await fetch("/api/admin/media", { cache: "no-store" });
+    if (!r.ok) return;
+    setMediaZoznam((await r.json()) as MediaFile[]);
+  }
+
+  async function nahraj() {
+    const subor = vyberSuboru.current?.files?.[0];
+    if (!subor) {
+      setMediaStav("Najprv vyber súbor");
+      return;
+    }
+
+    setNahravam(true);
+    setMediaStav(`Nahrávam ${subor.name}…`);
+
+    const telo = new FormData();
+    telo.append("file", subor);
+
+    try {
+      const r = await fetch("/api/admin/media", { method: "POST", body: telo });
+      const data = (await r.json()) as MediaFile & { error?: string };
+      if (!r.ok) {
+        setMediaStav(data.error ?? "Súbor sa nepodarilo nahrať");
+        return;
+      }
+      // Pole vyprázdnime, nech sa ten istý súbor nenahrá druhýkrát omylom.
+      if (vyberSuboru.current) vyberSuboru.current.value = "";
+      await obnovMedia();
+      setMediaStav(`Nahraté: ${data.name}`);
+    } catch {
+      setMediaStav("Nahrávanie zlyhalo — skús to znova");
+    } finally {
+      setNahravam(false);
+    }
+  }
+
+  async function zmazMedium(m: MediaFile) {
+    if (!confirm(`Naozaj zmazať ${m.name}? Zo sledu treba položku odobrať zvlášť.`)) {
+      return;
+    }
+
+    setMediaStav(`Mažem ${m.name}…`);
+    try {
+      const r = await fetch(
+        `/api/admin/media?path=${encodeURIComponent(m.path)}`,
+        { method: "DELETE" },
+      );
+      if (!r.ok) {
+        const data = (await r.json().catch(() => ({}))) as { error?: string };
+        setMediaStav(data.error ?? "Súbor sa nepodarilo zmazať");
+        return;
+      }
+      await obnovMedia();
+      setMediaStav(`Zmazané: ${m.name}`);
+    } catch {
+      setMediaStav("Mazanie zlyhalo — skús to znova");
+    }
   }
 
   function odober(id: string) {
@@ -103,10 +197,14 @@ export default function Editor({
 
   const menuNaVysku = orientation === "portrait" && items.some((i) => i.kind === "menu");
 
+  /* Pri vlastnom médiu je `mediaPath` dlhá adresa do Supabase — v slede by
+     zabrala celý riadok. Ukážeme radšej názov súboru. */
   const nazov = (i: PlaylistItem) =>
     i.kind === "menu"
       ? "Menu (živé z ChoiceQR)"
-      : (slides.find((s) => s.path === i.mediaPath)?.label ?? i.mediaPath);
+      : (slides.find((s) => s.path === i.mediaPath)?.label ??
+        mediaZoznam.find((m) => m.url === i.mediaPath)?.name ??
+        i.mediaPath);
 
   return (
     <>
@@ -226,9 +324,66 @@ export default function Editor({
           </>
         )}
 
-        <p className="ticho" style={{ marginTop: "0.8rem" }}>
-          Nahrávanie vlastných obrázkov pribudne po pripojení databázy.
-        </p>
+        <h3 style={{ marginTop: "1.2rem" }}>Vlastné obrázky a videá</h3>
+
+        {!mediaDostupne ? (
+          <p className="ticho">
+            Nahrávanie vlastných obrázkov a videí vyžaduje pripojenú databázu.
+          </p>
+        ) : (
+          <>
+            <p className="ticho">
+              Povolené sú JPEG, PNG, WebP, SVG a MP4, najviac 50 MB na súbor.
+              Videá sa prehrávajú bez zvuku — televízory ani prehliadače
+              automatické prehratie so zvukom nedovolia.
+            </p>
+
+            <div className="riadok" style={{ marginTop: "0.8rem" }}>
+              <input
+                ref={vyberSuboru}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/svg+xml,video/mp4"
+                disabled={nahravam}
+                aria-label="Súbor na nahratie"
+              />
+              <button onClick={nahraj} disabled={nahravam}>
+                {nahravam ? "Nahrávam…" : "Nahrať"}
+              </button>
+              {mediaStav && <span className="ticho">{mediaStav}</span>}
+            </div>
+
+            {mediaZoznam.length === 0 ? (
+              <p className="ticho" style={{ marginTop: "0.8rem" }}>
+                Zatiaľ nie je nahraté žiadne vlastné médium.
+              </p>
+            ) : (
+              <ul className="media">
+                {mediaZoznam.map((m) => (
+                  <li className="media__polozka" key={m.path}>
+                    {m.kind === "image" ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img className="media__nahlad" src={m.url} alt="" />
+                    ) : (
+                      <span className="media__nahlad media__nahlad--video">▶</span>
+                    )}
+                    <span className="media__nazov">
+                      {m.name}
+                      <span className="ticho"> · {vMB(m.sizeB)}</span>
+                    </span>
+                    <span className="riadok">
+                      <button className="vedlajsie" onClick={() => pridajMedium(m)}>
+                        + Pridať do sledu
+                      </button>
+                      <button className="zle" onClick={() => zmazMedium(m)}>
+                        Zmazať
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
       </div>
 
       <div className="riadok">

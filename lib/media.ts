@@ -1,5 +1,6 @@
 import { normalizeSlug } from "./storage/slug";
 
+
 /**
  * Vlastné médiá (obrázky a videá) v Supabase Storage, bucket `tv-media`.
  *
@@ -12,16 +13,9 @@ import { normalizeSlug } from "./storage/slug";
  * Klient sa k médiám dostane len cez `/api/admin/media`, ktorá beží na serveri.
  */
 
-export type MediaFile = {
-  /** názov súboru v buckete — to, čím sa adresuje pri mazaní */
-  path: string;
-  /** verejná adresa, ktorú dostane televízor */
-  url: string;
-  /** názov na zobrazenie obsluhe (zhodný s `path`) */
-  name: string;
-  sizeB: number;
-  kind: "image" | "video";
-};
+import type { MediaFile } from "./media-typy";
+
+export type { MediaFile };
 
 const BUCKET = "tv-media";
 
