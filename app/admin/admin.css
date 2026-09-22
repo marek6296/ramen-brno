@@ -1103,3 +1103,37 @@ body:has(.admin) {
 /* Na výšku obmedzujeme šírku — inak by náhľad zabral pol obrazovky
    a v zozname aj v editore by sa stratil zvyšok ovládania. */
 .nahlad--portrait  { aspect-ratio: 9 / 16; max-width: 18rem; margin-inline: auto; }
+
+.jedla-vyber {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.jedlo-tl {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.9rem;
+  text-align: left;
+  font: inherit;
+  color: var(--a-ink);
+  background: var(--a-papier-2);
+  border: 2px solid transparent;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+.jedlo-tl--vybrane {
+  border-color: var(--a-oranz);
+  background: color-mix(in srgb, var(--a-oranz) 12%, var(--a-papier-2));
+}
+
+/* Zaškrtávacie pole je jediné, kde popis patrí VEDĽA ovládania, nie nad ním. */
+.pole--zaskrtavacie {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+}
+.pole--zaskrtavacie input { width: auto; min-height: 0; }
