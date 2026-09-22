@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Board from "@/app/board";
+import BoardPortrait from "@/app/board-portrait";
 import type { MenuData } from "@/lib/menu";
 import type { Screen } from "@/lib/storage/types";
 import "./player.css";
@@ -153,7 +154,15 @@ export default function Player({ initial }: { initial: Screen }) {
         >
           {it.kind === "menu" ? (
             menu ? (
-              <Board initial={menu} />
+              /* Na výšku sa jedálny lístok skladá inak než na šírku — sekcie
+                 idú pod sebou a jedlá v nich do dvoch stĺpcov. Sú to dve
+                 samostatné dosky; tá na šírku beží klientovi v prevádzke
+                 a nesmie sa kvôli tejto zmeniť. */
+              screen.orientation === "portrait" ? (
+                <BoardPortrait initial={menu} />
+              ) : (
+                <Board initial={menu} />
+              )
             ) : (
               <p className="prazdne">Menu se načítá…</p>
             )

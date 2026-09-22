@@ -195,8 +195,6 @@ export default function Editor({
   const sediace = slides.filter((s) => s.orientation === orientation);
   const nesediace = slides.filter((s) => s.orientation !== orientation);
 
-  const menuNaVysku = orientation === "portrait" && items.some((i) => i.kind === "menu");
-
   /* Pri vlastnom médiu je `mediaPath` dlhá adresa do Supabase — v slede by
      zabrala celý riadok. Ukážeme radšej názov súboru. */
   const nazov = (i: PlaylistItem) =>
@@ -282,12 +280,6 @@ export default function Editor({
             </span>
           </div>
         ))}
-        {menuNaVysku && (
-          <p className="ticho" style={{ marginTop: "0.8rem" }}>
-            Pozor: menu na výšku príde až v 3. etape. Zatiaľ sa aj na obrazovke
-            na výšku vykreslí rozloženie na šírku.
-          </p>
-        )}
       </div>
 
       <div className="karta">
