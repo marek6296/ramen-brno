@@ -197,6 +197,22 @@ export function createSupabaseStore(url: string, serviceKey: string): Store {
           }),
         });
       } catch (e) {
+        if (chybaStlpecRotation(e)) {
+          console.warn(
+            "Supabase: stĺpec `rotation` neexistuje — spusti supabase/03-rotacia.sql. " +
+              "Obrazovka sa zatiaľ založí bez otočenia.",
+          );
+          riadky = await volaj("?select=*", {
+            method: "POST",
+            headers: { Prefer: "return=representation" },
+            body: JSON.stringify({
+              name: input.name,
+              slug: input.slug,
+              orientation: input.orientation,
+            }),
+          });
+          return naScreen(riadky[0]);
+        }
         if (jeDuplicita(e)) throw new DuplicateSlugError(input.slug);
         throw e;
       }
@@ -233,6 +249,21 @@ export function createSupabaseStore(url: string, serviceKey: string): Store {
           body: JSON.stringify(telo),
         });
       } catch (e) {
+        if (chybaStlpecRotation(e)) {
+          console.warn(
+            "Supabase: stĺpec `rotation` neexistuje — spusti supabase/03-rotacia.sql. " +
+              "Zmena sa zatiaľ uloží bez otočenia.",
+          );
+          delete telo.rotation;
+          if (Object.keys(telo).length === 0) telo.id = id;
+          riadky = await volaj(`?select=*&id=eq.${encodeURIComponent(id)}`, {
+            method: "PATCH",
+            headers: { Prefer: "return=representation" },
+            body: JSON.stringify(telo),
+          });
+          if (!riadky[0]) throw new NotFoundError();
+          return naScreen(riadky[0]);
+        }
         if (jeNeznameId(e)) throw new NotFoundError();
         if (jeDuplicita(e)) throw new DuplicateSlugError(patch.slug ?? "");
         throw e;
@@ -253,4 +284,21 @@ export function createSupabaseStore(url: string, serviceKey: string): Store {
       }
     },
   };
+}
+
+/**
+ * Stĺpec `rotation` pribudol neskôr a vyžaduje migráciu
+ * `supabase/03-rotacia.sql`. Kým ju niekto nespustí, Postgres vráti 42703.
+ *
+ * Zápis kvôli tomu nesmie zlyhať celý — klient by mal rozbitý admin a nevedel
+ * by uložiť ani sled položiek, ktorý s otočením vôbec nesúvisí. Preto to
+ * skúsime ešte raz bez toho poľa a napíšeme to do logu servera.
+ */
+function chybaStlpecRotation(e: unknown): boolean {
+  const text = String(e);
+  // PostgREST hlási chýbajúci stĺpec ako PGRST204 (nemá ho v pamäti schémy),
+  // Postgres samotný ako 42703. Overené naživo: pred migráciou chodí PGRST204.
+  return (
+    /PGRST204|42703/.test(text) && /rotation/i.test(text)
+  );
 }
