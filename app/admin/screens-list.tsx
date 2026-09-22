@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { SABLONY, type Slide } from "@/lib/slides/types";
 import type {
   Orientation,
   PlaylistItem,
@@ -37,7 +38,13 @@ function pocetPoloziek(n: number) {
  * Jedna dlaždica v páse sledu. Majiteľ tak na prvý pohľad vidí, čo na tej
  * televízii beží — bez toho, aby musel otvárať detail.
  */
-function DlazdicaSledu({ polozka }: { polozka: PlaylistItem }) {
+function DlazdicaSledu({
+  polozka,
+  slide,
+}: {
+  polozka: PlaylistItem;
+  slide?: Slide;
+}) {
   if (polozka.kind === "menu") {
     return (
       <li className="pas__dlazdica pas__dlazdica--menu" title="Menu (živé z ChoiceQR)">
@@ -52,6 +59,18 @@ function DlazdicaSledu({ polozka }: { polozka: PlaylistItem }) {
       </li>
     );
   }
+  if (polozka.kind === "slide") {
+    // Slide nemá obrázok, ktorý by sa dal ukázať. Bez tejto vetvy tu visela
+    // prázdna dlaždica a nebolo poznať, čo na tej TV vlastne je.
+    return (
+      <li
+        className="pas__dlazdica pas__dlazdica--slide"
+        title={slide ? `Slide: ${slide.name}` : "Zmazaný slide"}
+      >
+        {slide ? "SLIDE" : "?"}
+      </li>
+    );
+  }
   return (
     <li className="pas__dlazdica" title="Obrázok">
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -60,13 +79,34 @@ function DlazdicaSledu({ polozka }: { polozka: PlaylistItem }) {
   );
 }
 
-export default function ScreensList({ initial }: { initial: Screen[] }) {
+/** Čitateľný názov položky do zhrnutia pod pásikom. */
+function popisPolozky(p: PlaylistItem, slidy: Map<string, Slide>): string {
+  if (p.kind === "menu") return "Menu";
+  if (p.kind === "video") return "Video";
+  if (p.kind === "slide") {
+    const s = slidy.get(p.slideId);
+    if (!s) return "zmazaný slide";
+    const sablona = SABLONY.find((x) => x.hodnota === s.template)?.popis ?? s.template;
+    return `${s.name} (${sablona})`;
+  }
+  const kusy = p.mediaPath.split("/");
+  return decodeURIComponent(kusy[kusy.length - 1] || "obrázok");
+}
+
+export default function ScreensList({
+  initial,
+  slidy,
+}: {
+  initial: Screen[];
+  slidy: Slide[];
+}) {
   const router = useRouter();
   const [screens, setScreens] = useState(initial);
   const [name, setName] = useState("");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [rotation, setRotation] = useState<Rotation>("none");
   const [chyba, setChyba] = useState("");
+  const podlaId = useMemo(() => new Map(slidy.map((s) => [s.id, s])), [slidy]);
   /* Prepínanie orientácie beží pre každú obrazovku zvlášť, preto si stav
      držíme podľa id — inak by jedna prebiehajúca zmena zablokovala všetky. */
   const [prepinaSa, setPrepinaSa] = useState<Record<string, boolean>>({});
@@ -238,17 +278,35 @@ export default function ScreensList({ initial }: { initial: Screen[] }) {
             <>
               <ul className="pas">
                 {s.items.map((p) => (
-                  <DlazdicaSledu key={p.id} polozka={p} />
+                  <DlazdicaSledu
+                    key={p.id}
+                    polozka={p}
+                    slide={p.kind === "slide" ? podlaId.get(p.slideId) : undefined}
+                  />
                 ))}
               </ul>
               <p className="ticho" style={{ marginTop: "0.5rem" }}>
                 {pocetPoloziek(s.items.length)} v slede
+              </p>
+              {/* Ikonky samy o sebe nepovedia, čo na televízore beží.
+                  Vypísané po poradí to povedia. */}
+              <p className="sled-zhrnutie">
+                {s.items.map((p) => popisPolozky(p, podlaId)).join(" · ")}
               </p>
             </>
           )}
 
           <p className="adresa">
             <span className="adresa__text">/tv/{s.slug}</span>
+            {/* Nové okno zámerne: admin ostane otvorený tam, kde bol. */}
+            <a
+              className="tl tl--ticho tl--male"
+              href={`/tv/${s.slug}`}
+              target="_blank"
+              rel="noopener"
+            >
+              Otvoriť
+            </a>
             <button className="tl tl--ticho tl--male" onClick={() => kopiruj(s)}>
               {skopirovane === s.id ? "Skopírované" : "Kopírovať"}
             </button>

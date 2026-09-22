@@ -452,6 +452,14 @@ export default function Editor({
         <p className="adresa">
           <span className="adresa__text">/tv/{slug}</span>
           <span className="ticho">adresa sa premenovaním nemení</span>
+          <a
+            className="tl tl--ticho tl--male"
+            href={`/tv/${slug}`}
+            target="_blank"
+            rel="noopener"
+          >
+            Otvoriť
+          </a>
         </p>
       </section>
 
