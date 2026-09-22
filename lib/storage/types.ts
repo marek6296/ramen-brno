@@ -1,5 +1,8 @@
 export type Orientation = "landscape" | "portrait";
 
+/** ako sa má obraz otočiť; viď `rotation` na `Screen` */
+export type Rotation = "none" | "left" | "right";
+
 /** `video` sa spracováva až v 2. etape, typ je tu, aby sa model nemusel meniť */
 export type ItemKind = "menu" | "image" | "video";
 
@@ -32,6 +35,12 @@ export type Screen = {
   slug: string;
   name: string;
   orientation: Orientation;
+  /**
+   * Ako je televízor zavesený. Fyzicky otočená TV aj tak posiela obraz na
+   * šírku, takže o 90° musí otočiť samotná stránka. `none` je pre prípad,
+   * že by televízor otáčanie vedel sám.
+   */
+  rotation: Rotation;
   items: PlaylistItem[];
   /** milisekundy; podľa nej TV pozná, že sa niečo zmenilo */
   updatedAt: number;
@@ -41,12 +50,15 @@ export type NewScreen = {
   name: string;
   slug: string;
   orientation: Orientation;
+  /** keď sa neuvedie, obrazovka vznikne bez otáčania */
+  rotation?: Rotation;
 };
 
 export type ScreenPatch = Partial<{
   name: string;
   slug: string;
   orientation: Orientation;
+  rotation: Rotation;
   items: PlaylistItem[];
 }>;
 

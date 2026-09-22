@@ -3,7 +3,7 @@ import { getStore } from "@/lib/storage";
 import { normalizeSlug } from "@/lib/storage/slug";
 import { isLoggedIn } from "@/lib/session";
 import { DuplicateSlugError, NotFoundError } from "@/lib/storage/types";
-import type { Orientation } from "@/lib/storage/types";
+import type { Orientation, Rotation } from "@/lib/storage/types";
 
 export async function GET() {
   if (!(await isLoggedIn())) {
@@ -20,6 +20,7 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as {
     name?: string;
     orientation?: Orientation;
+    rotation?: Rotation;
   };
 
   const name = (body.name ?? "").trim();
@@ -38,9 +39,18 @@ export async function POST(req: Request) {
   const orientation: Orientation =
     body.orientation === "portrait" ? "portrait" : "landscape";
 
+  // Otáča sa len doska na výšku — doska na šírku sa na TV nikdy neotáča,
+  // takže pri nej je otočenie vždy „neotáčať". Nezmysel z prehliadača padá
+  // rovnako na „neotáčať".
+  const rotation: Rotation =
+    orientation === "portrait" &&
+    (body.rotation === "left" || body.rotation === "right")
+      ? body.rotation
+      : "none";
+
   try {
     return NextResponse.json(
-      await getStore().createScreen({ name, slug, orientation }),
+      await getStore().createScreen({ name, slug, orientation, rotation }),
       { status: 201 },
     );
   } catch (e) {

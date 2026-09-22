@@ -26,6 +26,16 @@ export async function PATCH(req: Request, { params }: Ctx) {
     patch.orientation = body.orientation;
   }
 
+  // Otočenie stránky pre TV zavesenú na výšku. Keď pole v tele nie je,
+  // ZÁMERNE sa nepatchuje — inak by uloženie samotného sledu potichu zrušilo
+  // otočenie. Nezmyselná hodnota z prehliadača padá na „neotáčať".
+  if (body.rotation !== undefined) {
+    patch.rotation =
+      body.rotation === "left" || body.rotation === "right"
+        ? body.rotation
+        : "none";
+  }
+
   if (Array.isArray(body.items)) {
     patch.items = body.items.map(
       (it: PlaylistItem): PlaylistItem => ({

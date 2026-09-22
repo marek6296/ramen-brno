@@ -3,6 +3,7 @@ import type {
   NewScreen,
   Orientation,
   PlaylistItem,
+  Rotation,
   Screen,
   ScreenPatch,
   Store,
@@ -23,12 +24,21 @@ import type {
 
 const PRECHODY: Transition[] = ["fade", "slide", "zoom", "none"];
 
+const OTOCENIA: Rotation[] = ["none", "left", "right"];
+
 /** tvar riadka tak, ako príde z databázy — `updated_at` v snake_case */
 type Riadok = {
   id: string;
   slug: string;
   name: string;
   orientation: Orientation;
+  /**
+   * Stĺpec pribudol až s migráciou `supabase/03-rotacia.sql`. Kým ju niekto
+   * nespustí, v odpovedi vôbec nie je — preto je tu voliteľný a `naScreen`
+   * ho dopĺňa na `"none"`, aby sa televízor kvôli chýbajúcemu stĺpcu
+   * neprestal ukazovať.
+   */
+  rotation?: Rotation | null;
   items: PlaylistItem[] | null;
   updated_at: number | string;
 };
@@ -61,6 +71,10 @@ function naScreen(r: Riadok): Screen {
     slug: r.slug,
     name: r.name,
     orientation: r.orientation,
+    // chýbajúci alebo neznámy stĺpec = obrazovka sa neotáča
+    rotation: OTOCENIA.includes(r.rotation as Rotation)
+      ? (r.rotation as Rotation)
+      : "none",
     items: (r.items ?? []).map(dopln),
     updatedAt: Number(r.updated_at),
   };
@@ -176,6 +190,10 @@ export function createSupabaseStore(url: string, serviceKey: string): Store {
             name: input.name,
             slug: input.slug,
             orientation: input.orientation,
+            // Otočenie posielame vždy, aj keď je `none` — inak by sa nedalo
+            // založiť obrazovku rovno otočenú. Vyžaduje to migráciu
+            // `supabase/03-rotacia.sql`; bez nej Supabase zápis odmietne.
+            rotation: input.rotation ?? "none",
           }),
         });
       } catch (e) {
@@ -194,6 +212,9 @@ export function createSupabaseStore(url: string, serviceKey: string): Store {
       if (patch.name !== undefined) telo.name = patch.name;
       if (patch.slug !== undefined) telo.slug = patch.slug;
       if (patch.orientation !== undefined) telo.orientation = patch.orientation;
+      // `rotation` je bežný stĺpec, nie súčasť `items` — jsonb je sled
+      // položiek, otočenie je vlastnosť obrazovky.
+      if (patch.rotation !== undefined) telo.rotation = patch.rotation;
       if (patch.items !== undefined) telo.items = patch.items;
       // `updatedAt` sa ZÁMERNE neposiela — o `updated_at` sa stará trigger
       // `screens_bump_updated_at`, ktorý ho pri každom UPDATE zvýši.

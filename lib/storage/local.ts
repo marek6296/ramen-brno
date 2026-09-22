@@ -5,6 +5,7 @@ import { DuplicateSlugError, NotFoundError } from "./types";
 import type {
   NewScreen,
   PlaylistItem,
+  Rotation,
   Screen,
   ScreenPatch,
   Store,
@@ -14,6 +15,19 @@ import type {
 type Data = { screens: Screen[] };
 
 const PRECHODY: Transition[] = ["fade", "slide", "zoom", "none"];
+
+const OTOCENIA: Rotation[] = ["none", "left", "right"];
+
+/**
+ * Obrazovky uložené pred zavedením otáčania pole `rotation` nemajú. Prehrávač
+ * z neho skladá triedu `ram--<hodnota>`; bez doplnenia by na rámci pristála
+ * `ram--undefined` a rámec by ostal bez rozmerov. `"none"` je pôvodné
+ * správanie — stránka sa neotáča.
+ */
+function doplnOtocenie(s: Screen): Screen {
+  if (OTOCENIA.includes(s?.rotation)) return s;
+  return { ...s, rotation: "none" };
+}
 
 /**
  * Súbory uložené pred zavedením prechodov pole `transition` nemajú. Keby sme
@@ -63,7 +77,7 @@ export function createLocalStore(dir: string): Store {
       const screens = data?.screens ?? [];
       return {
         screens: screens.map((s) => ({
-          ...s,
+          ...doplnOtocenie(s),
           items: (s.items ?? []).map(dopln),
         })),
       };
@@ -110,6 +124,7 @@ export function createLocalStore(dir: string): Store {
         name: input.name,
         slug: input.slug,
         orientation: input.orientation,
+        rotation: input.rotation ?? "none",
         items: [],
         updatedAt: Date.now(),
       };
