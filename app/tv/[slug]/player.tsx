@@ -15,6 +15,8 @@ export default function Player({ initial }: { initial: Screen }) {
   const [index, setIndex] = useState(0);
   const [bezKurzora, setBezKurzora] = useState(false);
   const casovac = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** prvky <video> podľa id položky — cez ne sa púšťa a zastavuje prehrávanie */
+  const videa = useRef(new Map<string, HTMLVideoElement>());
 
   const items = screen.items;
   const maMenu = items.some((i) => i.kind === "menu");
@@ -78,6 +80,32 @@ export default function Player({ initial }: { initial: Screen }) {
     };
   }, [index, items, podpis]);
 
+  /* Videá: hrá len to, ktoré je práve vidieť, ostatné stoja.
+     Prvky <video> pritom ZOSTÁVAJÚ V DOM celý čas — presne ako obrázky.
+     Keby sa skrytá položka odpájala, televízor by si súbor stiahol znova pri
+     každom kole sledu; pri niekoľkomegabajtovom videu a kole každých pár
+     minút je to nonstop, 24/7, a mesačný prenos dát vyletí na stovky GB.
+     Preto sa mení len viditeľnosť a prehrávanie, nikdy nie obsah DOM.
+
+     Skryté video sa zároveň nemá točiť do prázdna: zbytočne by žralo výkon
+     televízora a po návrate by začalo v náhodnom mieste. */
+  useEffect(() => {
+    const aktivne = items[index]?.id;
+    for (const [id, el] of videa.current) {
+      if (id === aktivne) {
+        // Bez zvuku (`muted`) prehliadače automatické prehratie dovolia;
+        // keby ho aj tak odmietli, obrazovka kvôli tomu nesmie spadnúť.
+        el.play().catch(() => {});
+      } else {
+        el.pause();
+        // Návrat na začiatok, nech klip vždy nastúpi od prvého záberu. Súbor
+        // je už stiahnutý, takže sa tým nič neťahá znova — je to tá istá
+        // operácia, akú robí `loop` na konci každého prehratia.
+        el.currentTime = 0;
+      }
+    }
+  }, [index, items]);
+
   /* Kurzor zmizne, keď sa myš nehýbe — na TV nemá čo robiť. */
   useEffect(() => {
     let id: ReturnType<typeof setTimeout>;
@@ -129,6 +157,20 @@ export default function Player({ initial }: { initial: Screen }) {
             ) : (
               <p className="prazdne">Menu se načítá…</p>
             )
+          ) : it.kind === "video" ? (
+            <video
+              ref={(el) => {
+                if (el) videa.current.set(it.id, el);
+                else videa.current.delete(it.id);
+              }}
+              src={it.mediaPath}
+              // Zvuk je vypnutý zámerne a natrvalo: prehliadače automatické
+              // prehratie so zvukom nedovolia a obísť sa to nedá.
+              muted
+              loop
+              playsInline
+              preload="auto"
+            />
           ) : (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={it.mediaPath} alt="" />
