@@ -30,6 +30,19 @@
 .ram--left { transform: rotate(-90deg) translateX(-100%); }
 
 .prehravac {
+  /* Časovanie prechodov na jednom mieste, nech sa dá ladiť naraz.
+
+     Krivka je zámerne SÚMERNÁ (0.45, 0, 0.55, 1): v polovici času je pohyb
+     v polovici dráhy. Pôvodná (0.4, 0, 0.2, 1) mala v polovici času za sebou
+     77 % dráhy — obraz šuchol nabok a posledný kúsok sa doťahoval, čo oko
+     na 50-palcovej obrazovke prečíta ako trhnutie.
+
+     Dĺžka je na televízor, nie na mobil: cez celú šírku obrazu je 620 ms
+     zbrklých, vyše sekundy pôsobí pokojne. */
+  --prechod-dlzka: 1100ms;
+  --prechod-krivka: cubic-bezier(0.45, 0, 0.55, 1);
+  --prechod-dlzka-kratka: 900ms;
+
   position: fixed;
   inset: 0;
   background: #f4f2ec;
@@ -108,46 +121,46 @@
 /* --- vytlačenie: obe sa hýbu rovnakým smerom, nová tlačí starú von --- */
 
 .polozka--prechod-push-left.polozka--vidno {
-  animation: prechod-prichod-sprava 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: prechod-prichod-sprava var(--prechod-dlzka) var(--prechod-krivka) both;
 }
 .polozka--prechod-push-left.polozka--odchadza {
   opacity: 1;
-  animation: prechod-odchod-dolava 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: prechod-odchod-dolava var(--prechod-dlzka) var(--prechod-krivka) both;
 }
 
 .polozka--prechod-push-right.polozka--vidno {
-  animation: prechod-prichod-zlava 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: prechod-prichod-zlava var(--prechod-dlzka) var(--prechod-krivka) both;
 }
 .polozka--prechod-push-right.polozka--odchadza {
   opacity: 1;
-  animation: prechod-odchod-doprava 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: prechod-odchod-doprava var(--prechod-dlzka) var(--prechod-krivka) both;
 }
 
 .polozka--prechod-push-up.polozka--vidno {
-  animation: prechod-prichod-zdola 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: prechod-prichod-zdola var(--prechod-dlzka) var(--prechod-krivka) both;
 }
 .polozka--prechod-push-up.polozka--odchadza {
   opacity: 1;
-  animation: prechod-odchod-nahor 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: prechod-odchod-nahor var(--prechod-dlzka) var(--prechod-krivka) both;
 }
 
 .polozka--prechod-push-down.polozka--vidno {
-  animation: prechod-prichod-zhora 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: prechod-prichod-zhora var(--prechod-dlzka) var(--prechod-krivka) both;
 }
 .polozka--prechod-push-down.polozka--odchadza {
   opacity: 1;
-  animation: prechod-odchod-nadol 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: prechod-odchod-nadol var(--prechod-dlzka) var(--prechod-krivka) both;
 }
 
 /* --- nasunutie: stará stojí, nová sa na ňu nasunie --- */
 
 .polozka--prechod-cover-left.polozka--vidno {
-  animation: prechod-prichod-sprava 560ms cubic-bezier(0.3, 0, 0.2, 1) both;
+  animation: prechod-prichod-sprava var(--prechod-dlzka-kratka) var(--prechod-krivka) both;
 }
 .polozka--prechod-cover-left.polozka--odchadza { opacity: 1; }
 
 .polozka--prechod-cover-up.polozka--vidno {
-  animation: prechod-prichod-zdola 560ms cubic-bezier(0.3, 0, 0.2, 1) both;
+  animation: prechod-prichod-zdola var(--prechod-dlzka-kratka) var(--prechod-krivka) both;
 }
 .polozka--prechod-cover-up.polozka--odchadza { opacity: 1; }
 
@@ -157,7 +170,7 @@
 .polozka--prechod-reveal-left.polozka--odchadza {
   opacity: 1;
   z-index: 3;
-  animation: prechod-odchod-dolava 560ms cubic-bezier(0.3, 0, 0.2, 1) both;
+  animation: prechod-odchod-dolava var(--prechod-dlzka-kratka) var(--prechod-krivka) both;
 }
 
 /* Televízor visí na stene a beží celý deň — kto si nastaví pokojný obraz,

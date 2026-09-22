@@ -12,10 +12,11 @@ import "./player.css";
 
 /**
  * Ako dlho po prepnutí ešte držíme odchádzajúcu položku v obraze. Musí byť
- * dlhšie než najdlhšia animácia prechodu v `player.css` — keby bolo kratšie,
- * odchádzajúca by zmizla uprostred pohybu a preskočilo by to.
+ * dlhšie než najdlhšia animácia prechodu v `player.css` (`--prechod-dlzka`,
+ * teraz 1100 ms) — keby bolo kratšie, odchádzajúca by zmizla uprostred
+ * pohybu a namiesto plynulého vytlačenia by to preskočilo.
  */
-const TRVANIE_PRECHODU = 900;
+const TRVANIE_PRECHODU = 1400;
 
 /** ako často sa TV pýta, či klient niečo nezmenil */
 const DOPYT_MS = 15_000;
