@@ -1,5 +1,5 @@
 import type { Dish, MenuData } from "@/lib/menu";
-import type { FieldsAkcia, Slide } from "./types";
+import { stojiNaJedlach, type Slide } from "./types";
 
 /**
  * Jedlá zo slidu vyhľadá v živých dátach z ChoiceQR. Poradie drží podľa
@@ -21,11 +21,12 @@ export function najdiJedla(menu: MenuData | null, ids: string[]): Dish[] {
  * Slide, ktorý stojí na jedlách a ani jedno z nich už v menu nie je, nemá čo
  * ukázať. Televízor ho preskočí — lepšie než prázdny rámec cez celú stenu.
  *
- * Uvítanie na jedlách nestojí, takže prázdne nie je nikdy.
+ * Šablóny, ktoré na jedlách nestoja (Uvítanie, Oznámenie), nie sú prázdne
+ * nikdy. Ktoré na nich stoja, hovorí `stojiNaJedlach` — na jedinom mieste.
  */
 export function jeSlidePrazdny(slide: Slide, menu: MenuData | null): boolean {
-  if (slide.template !== "akcia") return false;
-  const f = slide.fields as FieldsAkcia;
+  if (!stojiNaJedlach(slide.template)) return false;
+  const f = slide.fields as { dishIds: string[] };
   if (f.dishIds.length === 0) return false;
   return najdiJedla(menu, f.dishIds).length === 0;
 }

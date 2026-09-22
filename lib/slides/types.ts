@@ -1,4 +1,4 @@
-export type SlideTemplate = "akcia" | "uvitanie";
+export type SlideTemplate = "akcia" | "uvitanie" | "oznamenie" | "novinka";
 export type SlideVariant = "papier" | "tmava" | "oranzova";
 export type SlideAnimation = "ziadna" | "nastup" | "text" | "zoom";
 
@@ -24,7 +24,28 @@ export type FieldsUvitanie = {
   zobrazitHodiny: boolean;
 };
 
-export type SlideFields = FieldsAkcia | FieldsUvitanie;
+/** Oznámenie: krátky odkaz hosťom. Nestojí na jedlách. */
+export type FieldsOznamenie = {
+  text: string;
+  textEn: string;
+  podtext: string;
+  podtextEn: string;
+};
+
+/** Novinka: jedlo zo živého ChoiceQR so štítkom nad ním. */
+export type FieldsNovinka = {
+  /** id jedál z ChoiceQR; názov, popis aj cena sa ťahajú živo */
+  dishIds: string[];
+  /** štítok nad jedlom, napr. NOVINKA */
+  stitok: string;
+  stitokEn: string;
+};
+
+export type SlideFields =
+  | FieldsAkcia
+  | FieldsUvitanie
+  | FieldsOznamenie
+  | FieldsNovinka;
 
 export type Slide = {
   id: string;
@@ -72,7 +93,19 @@ export interface SlideStore {
 export const SABLONY: { hodnota: SlideTemplate; popis: string; kJedlam: boolean }[] = [
   { hodnota: "akcia", popis: "Akcia", kJedlam: true },
   { hodnota: "uvitanie", popis: "Uvítanie", kJedlam: false },
+  { hodnota: "oznamenie", popis: "Oznámenie", kJedlam: false },
+  { hodnota: "novinka", popis: "Novinka", kJedlam: true },
 ];
+
+/**
+ * Stojí šablóna na jedlách z ChoiceQR? Odpoveď je `kJedlam` v `SABLONY`, aby
+ * bola na jedinom mieste. Keby sa to písalo zvlášť tam, kde sa rozhoduje
+ * o prázdnom slide, ďalšia šablóna s jedlami by sa na to ticho zabudla
+ * a na stene by visel prázdny rámec.
+ */
+export function stojiNaJedlach(t: SlideTemplate): boolean {
+  return SABLONY.find((s) => s.hodnota === t)?.kJedlam ?? false;
+}
 
 export const VARIANTY: { hodnota: SlideVariant; popis: string }[] = [
   { hodnota: "papier", popis: "Papier" },
@@ -88,7 +121,15 @@ export const ANIMACIE: { hodnota: SlideAnimation; popis: string }[] = [
 ];
 
 export function prazdneFields(t: SlideTemplate): SlideFields {
-  return t === "akcia"
-    ? { nadpis: "", nadpisEn: "", dishIds: [], akciovaCena: "", podtext: "", podtextEn: "" }
-    : { nazov: "", kana: "", podtitul: "", podtitulEn: "", zobrazitHodiny: true };
+  switch (t) {
+    case "akcia":
+      return { nadpis: "", nadpisEn: "", dishIds: [], akciovaCena: "", podtext: "", podtextEn: "" };
+    case "uvitanie":
+      return { nazov: "", kana: "", podtitul: "", podtitulEn: "", zobrazitHodiny: true };
+    case "oznamenie":
+      return { text: "", textEn: "", podtext: "", podtextEn: "" };
+    case "novinka":
+      // Štítok predvyplnený — klient ho môže prepísať, ale nemusí naň myslieť.
+      return { dishIds: [], stitok: "NOVINKA", stitokEn: "NEW" };
+  }
 }

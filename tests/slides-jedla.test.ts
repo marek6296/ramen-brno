@@ -44,6 +44,28 @@ describe("jeSlidePrazdny", () => {
     expect(jeSlidePrazdny(akcia(["a", "zmizlo"]), menu)).toBe(false);
   });
 
+  it("novinka bez existujúcich jedál je tiež prázdna", () => {
+    // Novinka stojí na jedlách rovnako ako akcia. Keby sa na ňu zabudlo,
+    // po odstránení jedla z ChoiceQR by na stene visel prázdny rámec.
+    const n: Slide = {
+      id: "s3", name: "Novinka", template: "novinka", variant: "papier",
+      animation: "ziadna", updatedAt: 1,
+      fields: { dishIds: ["zmizlo"], stitok: "NOVINKA", stitokEn: "NEW" },
+    };
+    expect(jeSlidePrazdny(n, menu)).toBe(true);
+    expect(jeSlidePrazdny({ ...n, fields: { ...n.fields, dishIds: ["a"] } }, menu)).toBe(false);
+  });
+
+  it("oznámenie nie je prázdne nikdy — nestojí na jedlách", () => {
+    const o: Slide = {
+      id: "s4", name: "Oznámenie", template: "oznamenie", variant: "papier",
+      animation: "ziadna", updatedAt: 1,
+      fields: { text: "Dnes zavřeno", textEn: "", podtext: "", podtextEn: "" },
+    };
+    expect(jeSlidePrazdny(o, menu)).toBe(false);
+    expect(jeSlidePrazdny(o, null)).toBe(false);
+  });
+
   it("uvítanie nie je prázdne nikdy — nestojí na jedlách", () => {
     const u: Slide = {
       id: "s2", name: "Uvítanie", template: "uvitanie", variant: "papier",
