@@ -3,6 +3,8 @@
    aby sa produkčný súbor nemusel meniť. */
 body:has(.admin) {
   height: auto;
+  /* bez min-height by pod obsahom presvital tmavý podklad z globals.css */
+  min-height: 100vh;
   overflow: auto;
   background: #f4f2ec;
 }
