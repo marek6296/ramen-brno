@@ -206,87 +206,93 @@ export default function Player({ initial }: { initial: Screen }) {
   }
 
   return (
-    <div
-      className={`prehravac prehravac--${screen.orientation}${
-        bezKurzora ? " prehravac--bez-kurzora" : ""
-      }`}
-    >
-      {items.length === 0 && (
-        <p className="prazdne">
-          Obrazovka „{screen.name}" zatiaľ nemá nastavený žiadny obsah.
-        </p>
-      )}
+    /* Televízor zavesený na výšku aj tak posiela obraz na šírku, takže o 90°
+       musí otočiť samotná stránka. Rámec dostane vymenené rozmery a preklopí
+       sa; všetko vnútri si potom počíta veľkosti z neho, nie z okna. */
+    <div className={`ram ram--${screen.rotation}`}>
+      <div
+        className={`prehravac prehravac--${screen.orientation}${
+          bezKurzora ? " prehravac--bez-kurzora" : ""
+        }`}
+      >
+        {items.length === 0 && (
+          <p className="prazdne">
+            Obrazovka „{screen.name}" zatiaľ nemá nastavený žiadny obsah.
+          </p>
+        )}
 
-      {items.map((it, i) => (
-        <div
-          className={`polozka polozka--prechod-${it.transition}${
-            it.kind === "menu" ? " polozka--menu" : ""
-          }${i === index ? " polozka--vidno" : ""}`}
-          key={it.id}
-          aria-hidden={i !== index}
-        >
-          {it.kind === "menu" ? (
-            menu ? (
-              /* Na výšku sa jedálny lístok skladá inak než na šírku — sekcie
-                 idú pod sebou a jedlá v nich do dvoch stĺpcov. Sú to dve
-                 samostatné dosky; tá na šírku beží klientovi v prevádzke
-                 a nesmie sa kvôli tejto zmeniť. */
-              screen.orientation === "portrait" ? (
-                <BoardPortrait initial={menu} />
+        {items.map((it, i) => (
+          <div
+            className={`polozka polozka--prechod-${it.transition}${
+              it.kind === "menu" ? " polozka--menu" : ""
+            }${i === index ? " polozka--vidno" : ""}`}
+            key={it.id}
+            aria-hidden={i !== index}
+          >
+            {it.kind === "menu" ? (
+              menu ? (
+                /* Na výšku sa jedálny lístok skladá inak než na šírku —
+                   sekcie idú pod sebou a jedlá v nich do dvoch stĺpcov. Sú to
+                   dve samostatné dosky; tá na šírku beží klientovi v prevádzke
+                   a nesmie sa kvôli tejto zmeniť. */
+                screen.orientation === "portrait" ? (
+                  <BoardPortrait initial={menu} />
+                ) : (
+                  <Board initial={menu} />
+                )
               ) : (
-                <Board initial={menu} />
+                <p className="prazdne">Menu se načítá…</p>
               )
+            ) : it.kind === "video" ? (
+              <video
+                /* Tu sa počítajú prehratia. `loop` na prvku ZÁMERNE NIE JE:
+                   s ním prehliadač udalosť `ended` vôbec nevyšle (overené —
+                   chodilo len `seeking`) a bez nej by sa nedalo zistiť, koľko
+                   ráz už klip dohral. Pretočenie si preto robíme sami. */
+                onEnded={(e) => {
+                  // Dohrať môže len to video, ktoré je práve vidieť; ostatné
+                  // stoja. Keby predsa prišlo od skrytého, nemá čo počítať.
+                  if (i !== index) return;
+                  const el = e.currentTarget;
+                  const potrebne = Math.max(1, Math.round(it.repeats ?? 1));
+                  prehratia.current += 1;
+
+                  // Pri jedinej položke v slede nie je kam prepnúť — klip sa
+                  // teda púšťa dookola, rovnako ako to predtým robil `loop`.
+                  if (prehratia.current < potrebne || items.length < 2) {
+                    if (items.length < 2) prehratia.current = 0;
+                    el.currentTime = 0;
+                    el.play().catch(() => {});
+                    return;
+                  }
+
+                  // Odhrané. Strážcovi tým povieme, že video už nemá
+                  // rozbiehať.
+                  dohrate.current = true;
+                  dalsia();
+                }}
+                ref={(el) => {
+                  if (el) videa.current.set(it.id, el);
+                  else videa.current.delete(it.id);
+                }}
+                src={it.mediaPath}
+                // Zvuk je vypnutý zámerne a natrvalo: prehliadače automatické
+                // prehratie so zvukom nedovolia a obísť sa to nedá.
+                muted
+                playsInline
+                preload="auto"
+              />
             ) : (
-              <p className="prazdne">Menu se načítá…</p>
-            )
-          ) : it.kind === "video" ? (
-            <video
-              /* Tu sa počítajú prehratia. `loop` na prvku ZÁMERNE NIE JE:
-                 s ním prehliadač udalosť `ended` vôbec nevyšle (overené —
-                 chodilo len `seeking`) a bez nej by sa nedalo zistiť, koľko
-                 ráz už klip dohral. Pretočenie si preto robíme sami. */
-              onEnded={(e) => {
-                // Dohrať môže len to video, ktoré je práve vidieť; ostatné
-                // stoja. Keby predsa prišlo od skrytého, nemá čo počítať.
-                if (i !== index) return;
-                const el = e.currentTarget;
-                const potrebne = Math.max(1, Math.round(it.repeats ?? 1));
-                prehratia.current += 1;
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={it.mediaPath} alt="" />
+            )}
+          </div>
+        ))}
 
-                // Pri jedinej položke v slede nie je kam prepnúť — klip sa
-                // teda púšťa dookola, rovnako ako to predtým robil `loop`.
-                if (prehratia.current < potrebne || items.length < 2) {
-                  if (items.length < 2) prehratia.current = 0;
-                  el.currentTime = 0;
-                  el.play().catch(() => {});
-                  return;
-                }
-
-                // Odhrané. Strážcovi tým povieme, že video už nemá rozbiehať.
-                dohrate.current = true;
-                dalsia();
-              }}
-              ref={(el) => {
-                if (el) videa.current.set(it.id, el);
-                else videa.current.delete(it.id);
-              }}
-              src={it.mediaPath}
-              // Zvuk je vypnutý zámerne a natrvalo: prehliadače automatické
-              // prehratie so zvukom nedovolia a obísť sa to nedá.
-              muted
-              playsInline
-              preload="auto"
-            />
-          ) : (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={it.mediaPath} alt="" />
-          )}
-        </div>
-      ))}
-
-      <button className="celu-obrazovku" onClick={celuObrazovku}>
-        Celá obrazovka
-      </button>
+        <button className="celu-obrazovku" onClick={celuObrazovku}>
+          Celá obrazovka
+        </button>
+      </div>
     </div>
   );
 }

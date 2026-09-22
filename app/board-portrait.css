@@ -1,7 +1,14 @@
 /* ------------------------------------------------------------------
    RAMEN BRNO — doska NA VÝŠKU (9:16)
    Cieľ: dve televízory otočené na výšku, 1080×1920 aj 2160×3840.
-   Všetko škáluje z výšky viewportu (vh) -> na oboch rozlíšeniach rovnaké.
+   Všetko škáluje z výšky RÁMCA (jednotka cqh) -> na oboch rozlíšeniach
+   rovnaké.
+
+   Prečo z rámca a nie z okna: televízor zavesený na výšku aj tak posiela
+   obraz na šírku, takže stránku otáča o 90° rámec `.ram` v prehrávači. Výška
+   okna je potom 1080, ale obraz, ktorý divák vidí, je vysoký 1920 — jednotka
+   počítaná z okna by dala polovičné písmo. `cqh` sa počíta z rámca, takže
+   sedí v otočenom aj v neotočenom prípade.
 
    POZOR: `globals.css` (doska na šírku) platí aj na tejto stránke a NESMIE sa
    meniť — beží z neho klientovi TV v prevádzke. Preto má tu každá trieda
@@ -80,9 +87,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 1vh;
-  padding: 1.3vh 2.2vh 1.1vh;
-  border-bottom: 0.22vh solid var(--bp-rule);
+  gap: 1cqh;
+  padding: 1.3cqh 2.2cqh 1.1cqh;
+  border-bottom: 0.22cqh solid var(--bp-rule);
   position: relative;
   z-index: 2;
 }
@@ -95,7 +102,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.35vh;
+  gap: 0.35cqh;
   min-width: 0;
 }
 
@@ -105,7 +112,7 @@
    `.bp-logo` by nad ním kvôli špecifickosti prehralo — logo by potom zabralo
    celú hlavičku. */
 .bp-doska .bp-logo {
-  height: 5.4vh;
+  height: 5.4cqh;
   width: auto;
   max-width: none;
   object-fit: contain;
@@ -116,18 +123,18 @@
 .bp-znacka__text {
   display: flex;
   align-items: baseline;
-  gap: 0.9vh;
+  gap: 0.9cqh;
   min-width: 0;
 }
 
 .bp-znacka .bp-kana {
-  font-size: 1.05vh;
+  font-size: 1.05cqh;
   letter-spacing: 0.5em;
   color: var(--bp-accent-deep);
 }
 
 .bp-podnadpis {
-  font-size: 0.72vh;
+  font-size: 0.72cqh;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--bp-ink-3);
@@ -143,18 +150,18 @@
 .bp-nazov-menu {
   font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
   font-weight: 700;
-  font-size: 2.7vh;
+  font-size: 2.7cqh;
   letter-spacing: 0.24em;
   /* letter-spacing odsadí aj vpravo -> vizuálne dorovnáme zľava */
   text-indent: 0.24em;
   color: var(--bp-ink);
   display: flex;
   align-items: baseline;
-  gap: 0.5vh;
+  gap: 0.5cqh;
   white-space: nowrap;
 }
 .bp-nazov-menu .bp-kana {
-  font-size: 1vh;
+  font-size: 1cqh;
   letter-spacing: 0.3em;
   color: var(--bp-accent-deep);
 }
@@ -164,8 +171,8 @@
   flex-direction: column;
   align-items: flex-end;
   justify-self: end;
-  gap: 0.2vh;
-  font-size: 0.85vh;
+  gap: 0.2cqh;
+  font-size: 0.85cqh;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--bp-ink-2);
@@ -173,7 +180,7 @@
 
 .bp-hodiny {
   font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
-  font-size: 1.9vh;
+  font-size: 1.9cqh;
   letter-spacing: 0.08em;
   color: var(--bp-ink);
 }
@@ -196,14 +203,14 @@
      menšie menu (text sa zväčší), čo je pod ním, je väčšie menu.
      Keď sa tu čokoľvek zmení, treba znova pozrieť dosku v prehliadači.
   */
-  --bp-zaklad: 0.55vh;
+  --bp-zaklad: 0.55cqh;
   --bp-u: calc(var(--bp-zaklad) * var(--bp-fit, 1));
 
   position: relative;
   z-index: 2;
   min-height: 0;
   overflow: hidden;
-  padding: calc(1.4 * var(--bp-u)) 2.4vh calc(1.6 * var(--bp-u));
+  padding: calc(1.4 * var(--bp-u)) 2.4cqh calc(1.6 * var(--bp-u));
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -212,7 +219,7 @@
 }
 
 @keyframes bp-fadein {
-  from { opacity: 0; transform: translateY(0.8vh); }
+  from { opacity: 0; transform: translateY(0.8cqh); }
   to   { opacity: 1; transform: none; }
 }
 
@@ -225,7 +232,7 @@
 
 /* deliaca čiara medzi sekciami */
 .bp-sekcia + .bp-sekcia {
-  border-top: 0.18vh solid var(--bp-rule);
+  border-top: 0.18cqh solid var(--bp-rule);
   padding-top: calc(1.3 * var(--bp-u));
 }
 
@@ -236,7 +243,7 @@
   align-items: baseline;
   gap: calc(1 * var(--bp-u));
   padding-bottom: calc(0.45 * var(--bp-u));
-  border-bottom: 0.14vh solid var(--bp-ink);
+  border-bottom: 0.14cqh solid var(--bp-ink);
 }
 .bp-nadpis h2 {
   font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
@@ -279,7 +286,7 @@
 
 /* zvislá deliaca linka medzi polovicami */
 .bp-stlpec + .bp-stlpec {
-  border-left: 0.12vh solid var(--bp-linka);
+  border-left: 0.12cqh solid var(--bp-linka);
   padding-left: calc(2.2 * var(--bp-u));
 }
 
@@ -297,10 +304,10 @@
   align-items: start;
   background-image: linear-gradient(
     to right,
-    transparent calc(50% - 0.06vh),
-    var(--bp-linka) calc(50% - 0.06vh),
-    var(--bp-linka) calc(50% + 0.06vh),
-    transparent calc(50% + 0.06vh)
+    transparent calc(50% - 0.06cqh),
+    var(--bp-linka) calc(50% - 0.06cqh),
+    var(--bp-linka) calc(50% + 0.06cqh),
+    transparent calc(50% + 0.06cqh)
   );
   background-repeat: no-repeat;
 }
@@ -426,8 +433,8 @@
   padding:
     calc(0.2 * var(--bp-u) * var(--bp-tag-fit, 1))
     calc(0.6 * var(--bp-u) * var(--bp-tag-fit, 1));
-  border: 0.1vh solid currentColor;
-  border-radius: 0.3vh;
+  border: 0.1cqh solid currentColor;
+  border-radius: 0.3cqh;
   font-size: calc(0.92 * var(--bp-u) * var(--bp-tag-fit, 1));
   letter-spacing: calc(0.16em * var(--bp-tag-fit, 1));
   white-space: nowrap;
@@ -477,7 +484,7 @@
 .bp-jedlo.out .bp-nazov,
 .bp-jedlo.out .bp-cena {
   text-decoration: line-through;
-  text-decoration-thickness: 0.12vh;
+  text-decoration-thickness: 0.12cqh;
 }
 
 /* ---------------- riadok s viacerými bunkami ---------------- */
@@ -498,7 +505,7 @@
   min-width: 0;
 }
 .bp-bunka + .bp-bunka {
-  border-left: 0.12vh solid var(--bp-linka);
+  border-left: 0.12cqh solid var(--bp-linka);
   padding-left: calc(2 * var(--bp-u));
 }
 /* boxy majú vlastný rámik — ďalšia zvislá čiara medzi nimi by bola navyše */
@@ -515,7 +522,7 @@
 /* ---------------- boxy s voľbami a prídavkami ---------------- */
 
 .bp-box {
-  border: 0.18vh solid var(--bp-rule);
+  border: 0.18cqh solid var(--bp-rule);
   padding: calc(0.9 * var(--bp-u)) calc(1.1 * var(--bp-u)) calc(1 * var(--bp-u));
   background: rgba(255, 255, 255, 0.42);
 }
@@ -557,8 +564,8 @@
 }
 .bp-vodic {
   flex: 1;
-  border-bottom: 0.1vh dotted rgba(20, 17, 15, 0.3);
-  transform: translateY(-0.3vh);
+  border-bottom: 0.1cqh dotted rgba(20, 17, 15, 0.3);
+  transform: translateY(-0.3cqh);
 }
 .bp-p { color: var(--bp-accent-deep); font-weight: 700; white-space: nowrap; }
 /* položka, ktorá je v cene (0 Kč) — tlmenejšia, nie oranžová cena */
@@ -604,7 +611,7 @@
   color: var(--bp-accent-deep);
   margin-bottom: calc(0.3 * var(--bp-u));
   padding-bottom: calc(0.2 * var(--bp-u));
-  border-bottom: 0.1vh solid rgba(168, 80, 12, 0.28);
+  border-bottom: 0.1cqh solid rgba(168, 80, 12, 0.28);
 }
 
 /* Box s POVINNOU VOĽBOU (nudle) — odlíšený od prídavkov: prídavky sú
@@ -612,10 +619,10 @@
 .bp-box--volba {
   border: none;
   border-left: calc(0.45 * var(--bp-u)) solid var(--bp-accent-deep);
-  border-radius: 0 0.7vh 0.7vh 0;
+  border-radius: 0 0.7cqh 0.7cqh 0;
   background:
     linear-gradient(180deg, rgba(217, 116, 26, 0.13), rgba(217, 116, 26, 0.06));
-  box-shadow: inset 0 0 0 0.1vh rgba(168, 80, 12, 0.18);
+  box-shadow: inset 0 0 0 0.1cqh rgba(168, 80, 12, 0.18);
 }
 .bp-box--volba h3 { color: var(--bp-accent-deep); }
 .bp-box--volba .bp-box__en { color: rgba(168, 80, 12, 0.7); }

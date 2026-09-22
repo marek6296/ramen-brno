@@ -1,3 +1,34 @@
+/* Televízor zavesený na výšku aj tak posiela obraz NA ŠÍRKU — okno prehliadača
+   je 1920×1080 aj keď TV visí vertikálne. Otočiť sa preto musí samotná
+   stránka. Rámec dostane vymenené rozmery a preklopí sa o 90°.
+
+   `container-type: size` je tu kľúčové: obsah vnútri počíta veľkosti
+   z rámca (`cqh`), nie z okna (`vh`). Bez toho by po otočení vyšlo písmo
+   na polovicu — okno je vysoké 1080, ale rámec 1920. */
+.ram {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  container-type: size;
+  overflow: hidden;
+}
+
+.ram--left,
+.ram--right {
+  /* vymenené rozmery: čo bolo široké, je vysoké */
+  width: 100vh;
+  height: 100vw;
+  transform-origin: top left;
+}
+
+/* TV zavesená tak, že vrch obrazu smeruje doprava */
+.ram--right { transform: rotate(90deg) translateY(-100%); }
+
+/* TV zavesená opačne */
+.ram--left { transform: rotate(-90deg) translateX(-100%); }
+
 .prehravac {
   position: fixed;
   inset: 0;
@@ -72,26 +103,27 @@
   align-items: center;
   justify-content: center;
   color: #6b6459;
-  font-size: 2vh;
+  /* `cqh`, nie `vh` — na otočenej TV výška okna nesedí s výškou obrazu */
+  font-size: 2cqh;
   letter-spacing: 0.1em;
   text-align: center;
-  padding: 4vh;
+  padding: 4cqh;
 }
 
 .celu-obrazovku {
   position: fixed;
-  bottom: 2.4vh;
-  right: 2.4vh;
+  bottom: 2.4cqh;
+  right: 2.4cqh;
   z-index: 20;
-  padding: 1.1vh 1.6vh;
+  padding: 1.1cqh 1.6cqh;
   font-family: Roboto, sans-serif;
-  font-size: 1.35vh;
+  font-size: 1.35cqh;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #f4f2ec;
   background: #14110f;
   border: none;
-  border-radius: 0.6vh;
+  border-radius: 0.6cqh;
   cursor: pointer;
   opacity: 0.35;
   transition: opacity 200ms;
