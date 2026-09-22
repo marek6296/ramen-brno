@@ -33,6 +33,28 @@ const prechodyPre = (kind: PlaylistItem["kind"]) =>
 /** veľkosť v MB na jedno desatinné miesto — bajty obsluhe nič nepovedia */
 const vMB = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`;
 
+const POPIS_ORIENTACIE: Record<Orientation, string> = {
+  landscape: "na šírku",
+  portrait: "na výšku",
+};
+
+/** Odtlačok stavu, ktorý sa ukladá. Lepiaca lišta podľa neho pozná, či má
+ *  čo hlásiť — bez toho by svietila „neuložené" aj po uložení. */
+const odtlacok = (n: string, o: Orientation, it: PlaylistItem[]) =>
+  JSON.stringify({ n, o, it });
+
+/** stav ťahania položky sledu prstom alebo myšou */
+type Tah = {
+  /** pôvodný index ťahanej položky */
+  od: number;
+  /** index, kam by položka pri pustení spadla */
+  na: number;
+  /** posun prsta od začiatku ťahania, v px */
+  dy: number;
+  /** o koľko px sa majú rozostúpiť ostatné riadky */
+  krok: number;
+};
+
 export default function Editor({
   screen,
   slides,
@@ -48,7 +70,15 @@ export default function Editor({
   const [orientation, setOrientation] = useState<Orientation>(screen.orientation);
   const [items, setItems] = useState<PlaylistItem[]>(screen.items);
   const [slug, setSlug] = useState(screen.slug);
-  const [stav, setStav] = useState("");
+
+  /* Ukladanie: `ulozeny` je odtlačok toho, čo naozaj leží na serveri. */
+  const [ulozeny, setUlozeny] = useState(() =>
+    odtlacok(screen.name, screen.orientation, screen.items),
+  );
+  const [uklada, setUklada] = useState(false);
+  const [uloziloSa, setUloziloSa] = useState(false);
+  const [chybaUloz, setChybaUloz] = useState("");
+  const neulozene = odtlacok(name, orientation, items) !== ulozeny;
 
   /* Zoznam médií prišiel zo servera, ale po nahratí alebo zmazaní si ho
      ťaháme znova z `/api/admin/media` — bez toho by sa nový súbor ukázal až
@@ -103,13 +133,9 @@ export default function Editor({
     setMediaZoznam((await r.json()) as MediaFile[]);
   }
 
-  async function nahraj() {
-    const subor = vyberSuboru.current?.files?.[0];
-    if (!subor) {
-      setMediaStav("Najprv vyber súbor");
-      return;
-    }
-
+  /* Dlaždica „+ Nahrať" otvorí výber súboru a nahráva sa hneď po výbere —
+     dvojkrokové „vyber a potom stlač Nahrať" klienta zbytočne zdržiavalo. */
+  async function nahraj(subor: File) {
     setNahravam(true);
     setMediaStav(`Nahrávam ${subor.name}…`);
 
@@ -123,13 +149,13 @@ export default function Editor({
         setMediaStav(data.error ?? "Súbor sa nepodarilo nahrať");
         return;
       }
-      // Pole vyprázdnime, nech sa ten istý súbor nenahrá druhýkrát omylom.
-      if (vyberSuboru.current) vyberSuboru.current.value = "";
       await obnovMedia();
       setMediaStav(`Nahraté: ${data.name}`);
     } catch {
       setMediaStav("Nahrávanie zlyhalo — skús to znova");
     } finally {
+      // Pole vyprázdnime, nech sa ten istý súbor dá vybrať znova.
+      if (vyberSuboru.current) vyberSuboru.current.value = "";
       setNahravam(false);
     }
   }
@@ -161,14 +187,20 @@ export default function Editor({
     setItems((z) => z.filter((i) => i.id !== id));
   }
 
-  function posun(i: number, o: number) {
+  /** presun položky z indexu `od` na index `na` (nie výmena — ťahanie sa
+   *  musí správať ako vsunutie medzi susedov) */
+  function presun(od: number, na: number) {
     setItems((z) => {
-      const ciel = i + o;
-      if (ciel < 0 || ciel >= z.length) return z;
+      if (od === na || od < 0 || na < 0 || od >= z.length || na >= z.length) return z;
       const kopia = [...z];
-      [kopia[i], kopia[ciel]] = [kopia[ciel], kopia[i]];
+      const [vybrata] = kopia.splice(od, 1);
+      kopia.splice(na, 0, vybrata);
       return kopia;
     });
+  }
+
+  function posun(i: number, o: number) {
+    presun(i, i + o);
   }
 
   function trvanie(id: string, s: number) {
@@ -183,26 +215,100 @@ export default function Editor({
     setItems((z) => z.map((i) => (i.id === id ? { ...i, repeats: n } : i)));
   }
 
-  async function uloz() {
-    setStav("Ukladám…");
-    const r = await fetch(`/api/admin/screens/${screen.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name, orientation, items }),
-    });
-    const data = await r.json();
-    if (!r.ok) {
-      setStav(data.error ?? "Nepodarilo sa uložiť");
-      return;
-    }
-    setSlug((data as Screen).slug); // adresa sa nemení, len si držíme pravdu zo servera
-    setStav("Uložené — TV sa prispôsobí do 15 sekúnd");
+  /* ------------------------------------------------------------------ *
+   * Ťahanie položiek sledu.
+   *
+   * Zámerne cez pointer events, NIE cez HTML5 drag-and-drop — ten na dotyku
+   * nefunguje. Úchyt má `touch-action: none`, takže prst pri ťahaní neroluje
+   * stránku, a `setPointerCapture` drží ďalšie udalosti na úchyte aj vtedy,
+   * keď prst zíde mimo neho.
+   * ------------------------------------------------------------------ */
+
+  const sledRef = useRef<HTMLUListElement>(null);
+  const [tah, setTah] = useState<Tah | null>(null);
+  /* Stredy riadkov meriame RAZ na začiatku ťahania. Počas ťahania sa riadky
+     posúvajú transformom, takže ich živé rozmery by lietali. */
+  const stredy = useRef<number[]>([]);
+  const zaciatokY = useRef(0);
+
+  function zacniTah(e: React.PointerEvent<HTMLButtonElement>, index: number) {
+    // pravé tlačidlo myši ťahanie nespúšťa
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const zoznam = sledRef.current;
+    if (!zoznam) return;
+
+    const riadky = Array.from(zoznam.children) as HTMLElement[];
+    const miery = riadky.map((r) => r.getBoundingClientRect());
+    if (miery.length < 2) return; // jedna položka sa preskladať nedá
+
+    stredy.current = miery.map((m) => m.top + m.height / 2);
+    zaciatokY.current = e.clientY;
+    // krok = výška riadka aj s medzerou pod ním
+    const krok = miery[0].height + Math.max(0, miery[1].top - miery[0].bottom);
+
+    e.currentTarget.setPointerCapture(e.pointerId);
+    e.preventDefault(); // na myši zabráni označovaniu textu
+    setTah({ od: index, na: index, dy: 0, krok });
   }
 
-  /* Rozdelenie sa riadi práve zvolenou orientáciou (stav `orientation`), nie
-     tým, čo je uložené na serveri — klient si ju vie prepnúť pred uložením. */
-  const sediace = slides.filter((s) => s.orientation === orientation);
-  const nesediace = slides.filter((s) => s.orientation !== orientation);
+  function pokracujTah(e: React.PointerEvent<HTMLButtonElement>) {
+    setTah((t) => {
+      if (!t) return t;
+      const dy = e.clientY - zaciatokY.current;
+      const stred = stredy.current[t.od] + dy;
+      // nový index = koľko iných riadkov má stred nad ťahaným
+      let na = 0;
+      for (let i = 0; i < stredy.current.length; i++) {
+        if (i !== t.od && stredy.current[i] < stred) na++;
+      }
+      return { ...t, dy, na };
+    });
+  }
+
+  function ukonciTah(e: React.PointerEvent<HTMLButtonElement>, pustit: boolean) {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    if (!tah) return;
+    if (pustit) presun(tah.od, tah.na);
+    setTah(null);
+  }
+
+  /** o koľko je riadok `i` posunutý, kým sa ťahá */
+  function posunRiadka(i: number): string | undefined {
+    if (!tah) return undefined;
+    if (i === tah.od) return `translateY(${tah.dy}px)`;
+    if (tah.od < tah.na && i > tah.od && i <= tah.na) return `translateY(${-tah.krok}px)`;
+    if (tah.od > tah.na && i >= tah.na && i < tah.od) return `translateY(${tah.krok}px)`;
+    return "translateY(0px)";
+  }
+
+  /* --------------------------------------------------------- ukladanie --- */
+
+  async function uloz() {
+    setUklada(true);
+    setChybaUloz("");
+    const posielane = { name, orientation, items };
+    try {
+      const r = await fetch(`/api/admin/screens/${screen.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(posielane),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setChybaUloz(data.error ?? "Nepodarilo sa uložiť");
+        return;
+      }
+      setSlug((data as Screen).slug); // adresa sa nemení, len si držíme pravdu zo servera
+      setUlozeny(odtlacok(posielane.name, posielane.orientation, posielane.items));
+      setUloziloSa(true);
+    } catch {
+      setChybaUloz("Server neodpovedal — skús to znova");
+    } finally {
+      setUklada(false);
+    }
+  }
 
   /* Pri vlastnom médiu je `mediaPath` dlhá adresa do Supabase — v slede by
      zabrala celý riadok. Ukážeme radšej názov súboru. */
@@ -215,205 +321,327 @@ export default function Editor({
 
   return (
     <>
-      <header className="admin__hlavicka">
-        <h1>{screen.name}</h1>
-        <Link href="/admin">← Späť na zoznam</Link>
+      <header className="hlavicka">
+        <h1>
+          {screen.name}
+          <span className="hlavicka__popis">Úprava obrazovky</span>
+        </h1>
+        <Link className="tl tl--tmave tl--male" href="/admin">
+          ← Zoznam
+        </Link>
       </header>
 
-      <div className="karta">
-        <h2>Nastavenia</h2>
-        <label>
-          Názov
-          <input value={name} onChange={(e) => setName(e.target.value)} />
-        </label>
-        <label>
-          Orientácia
-          <select
-            value={orientation}
-            onChange={(e) => setOrientation(e.target.value as Orientation)}
-          >
-            <option value="landscape">na šírku</option>
-            <option value="portrait">na výšku</option>
-          </select>
-        </label>
-        <p className="ticho">
-          Adresa pre TV (premenovaním sa nezmení, aby nastavená TV nezhasla):
-        </p>
-        <p className="odkaz-tv">/tv/{slug}</p>
-      </div>
-
-      <div className="karta">
-        <h2>Sled na obrazovke</h2>
-        {items.length === 0 && (
-          <p className="ticho">Sled je prázdny — obrazovka zatiaľ nič neukáže.</p>
-        )}
-        {items.map((i, index) => (
-          <div className="riadok riadok--medzi" key={i.id} style={{ marginBottom: "0.6rem" }}>
-            <span>
-              {index + 1}. {nazov(i)}
-            </span>
-            <span className="riadok">
-              {/* Pri videu sú sekundy na nič — nikto nevie, koľko klip trvá.
-                  Zadáva sa preto počet prehratí a prehrávač si počká, kým
-                  klip dohrá. Pri menu a obrázku zostávajú sekundy. */}
-              {i.kind === "video" ? (
-                <>
-                  <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    aria-label={`Počet prehratí položky ${index + 1}`}
-                    title="koľkokrát sa klip prehrá"
-                    value={i.repeats}
-                    onChange={(e) => opakovania(i.id, Number(e.target.value))}
-                    style={{ width: "5.5rem" }}
-                  />
-                  <span className="ticho" title="koľkokrát sa klip prehrá">
-                    ×
-                  </span>
-                </>
-              ) : (
-                <>
-                  <input
-                    type="number"
-                    min={3}
-                    max={3600}
-                    aria-label={`Trvanie položky ${index + 1} v sekundách`}
-                    value={i.durationS}
-                    onChange={(e) => trvanie(i.id, Number(e.target.value))}
-                    style={{ width: "5.5rem" }}
-                  />
-                  <span className="ticho">s</span>
-                </>
-              )}
+      {/* ------------------------------------------------- nastavenia --- */}
+      <section className="karta" style={{ "--i": 0 } as React.CSSProperties}>
+        <h3>Nastavenia obrazovky</h3>
+        <div className="nastavenia">
+          <label className="pole">
+            <span className="pole__popis">Názov</span>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
+          <label className="pole">
+            <span className="pole__popis">Orientácia</span>
+            <span className="odznak">
               <select
-                aria-label={`Prechod položky ${index + 1}`}
-                value={i.transition}
-                onChange={(e) => prechod(i.id, e.target.value as Transition)}
+                value={orientation}
+                onChange={(e) => setOrientation(e.target.value as Orientation)}
               >
-                {prechodyPre(i.kind).map((p) => (
-                  <option key={p.hodnota} value={p.hodnota}>
-                    {p.popis}
-                  </option>
-                ))}
+                <option value="landscape">na šírku</option>
+                <option value="portrait">na výšku</option>
               </select>
-              <button className="vedlajsie" onClick={() => posun(index, -1)} disabled={index === 0}>
-                ↑
-              </button>
-              <button
-                className="vedlajsie"
-                onClick={() => posun(index, 1)}
-                disabled={index === items.length - 1}
-              >
-                ↓
-              </button>
-              <button className="zle" onClick={() => odober(i.id)}>
-                ×
-              </button>
             </span>
-          </div>
-        ))}
-      </div>
-
-      <div className="karta">
-        <h2>Pridať do sledu</h2>
-        <div className="riadok">
-          <button className="vedlajsie" onClick={pridajMenu}>
-            + Menu
-          </button>
-          {sediace.map((s) => (
-            <button key={s.path} className="vedlajsie" onClick={() => pridajSlide(s.path)}>
-              + {s.label}
-            </button>
-          ))}
+          </label>
         </div>
+        <p className="adresa">
+          <span className="adresa__text">/tv/{slug}</span>
+          <span className="ticho">adresa sa premenovaním nemení</span>
+        </p>
+      </section>
 
-        {nesediace.length > 0 && (
-          <>
-            <h3 style={{ marginTop: "1.2rem" }}>Nesedia s orientáciou obrazovky</h3>
-            <p className="ticho">
-              Na tejto obrazovke po stranách zostanú prázdne pásy. Pridať sa
-              dajú, ak to tak chceš.
-            </p>
-            <div className="riadok">
-              {nesediace.map((s) => (
-                <button
-                  key={s.path}
-                  className="vedlajsie"
-                  onClick={() => pridajSlide(s.path)}
-                >
-                  + {s.label}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        <h3 style={{ marginTop: "1.2rem" }}>Vlastné obrázky a videá</h3>
-
-        {!mediaDostupne ? (
-          <p className="ticho">
-            Nahrávanie vlastných obrázkov a videí vyžaduje pripojenú databázu.
+      {/* ------------------------------------------------------- sled --- */}
+      <section className="karta" style={{ "--i": 1 } as React.CSSProperties}>
+        <h2>Sled na obrazovke</h2>
+        {items.length === 0 ? (
+          <p className="ticho" style={{ marginTop: "0.6rem" }}>
+            Sled je prázdny — obrazovka zatiaľ nič neukáže. Pridaj niečo nižšie.
           </p>
         ) : (
           <>
-            <p className="ticho">
-              Povolené sú JPEG, PNG, WebP, SVG a MP4, najviac 50 MB na súbor.
-              Videá sa prehrávajú bez zvuku — televízory ani prehliadače
-              automatické prehratie so zvukom nedovolia.
+            <p className="ticho" style={{ marginTop: "0.35rem" }}>
+              Poradie zmeníš ťahaním za úchyt ⠿ alebo šípkami.
             </p>
+            <ul className="sled" ref={sledRef}>
+              {items.map((i, index) => (
+                <li
+                  className={
+                    tah?.od === index ? "sled__riadok sled__riadok--tahany" : "sled__riadok"
+                  }
+                  key={i.id}
+                  style={{ transform: posunRiadka(index) }}
+                >
+                  <button
+                    type="button"
+                    className="sled__uchyt"
+                    aria-label={`Presunúť položku ${index + 1}`}
+                    title="Ťahaním zmeníš poradie"
+                    onPointerDown={(e) => zacniTah(e, index)}
+                    onPointerMove={pokracujTah}
+                    onPointerUp={(e) => ukonciTah(e, true)}
+                    onPointerCancel={(e) => ukonciTah(e, false)}
+                  >
+                    ⠿
+                  </button>
 
-            <div className="riadok" style={{ marginTop: "0.8rem" }}>
-              <input
-                ref={vyberSuboru}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/svg+xml,video/mp4"
-                disabled={nahravam}
-                aria-label="Súbor na nahratie"
-              />
-              <button onClick={nahraj} disabled={nahravam}>
-                {nahravam ? "Nahrávam…" : "Nahrať"}
-              </button>
-              {mediaStav && <span className="ticho">{mediaStav}</span>}
-            </div>
+                  <div className="sled__telo">
+                    <div className="sled__hlava">
+                      <span className="sled__poradie">{index + 1}</span>
+                      <span className="sled__nazov" title={nazov(i)}>
+                        {nazov(i)}
+                      </span>
+                      <button
+                        type="button"
+                        className="sled__x"
+                        aria-label={`Odobrať položku ${index + 1} zo sledu`}
+                        onClick={() => odober(i.id)}
+                      >
+                        ×
+                      </button>
+                    </div>
 
-            {mediaZoznam.length === 0 ? (
-              <p className="ticho" style={{ marginTop: "0.8rem" }}>
-                Zatiaľ nie je nahraté žiadne vlastné médium.
-              </p>
-            ) : (
-              <ul className="media">
-                {mediaZoznam.map((m) => (
-                  <li className="media__polozka" key={m.path}>
-                    {m.kind === "image" ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img className="media__nahlad" src={m.url} alt="" />
-                    ) : (
-                      <span className="media__nahlad media__nahlad--video">▶</span>
-                    )}
-                    <span className="media__nazov">
-                      {m.name}
-                      <span className="ticho"> · {vMB(m.sizeB)}</span>
-                    </span>
-                    <span className="riadok">
-                      <button className="vedlajsie" onClick={() => pridajMedium(m)}>
-                        + Pridať do sledu
-                      </button>
-                      <button className="zle" onClick={() => zmazMedium(m)}>
-                        Zmazať
-                      </button>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+                    <div className="sled__ovladanie">
+                      {/* Pri videu sú sekundy na nič — nikto nevie, koľko klip
+                          trvá. Zadáva sa preto počet prehratí a prehrávač si
+                          počká, kým klip dohrá. Pri menu a obrázku zostávajú
+                          sekundy. */}
+                      {i.kind === "video" ? (
+                        <span className="sled__cislo">
+                          <input
+                            type="number"
+                            min={1}
+                            max={20}
+                            aria-label={`Počet prehratí položky ${index + 1}`}
+                            title="koľkokrát sa klip prehrá"
+                            value={i.repeats}
+                            onChange={(e) => opakovania(i.id, Number(e.target.value))}
+                          />
+                          <span className="sled__jednotka" title="koľkokrát sa klip prehrá">
+                            ×
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="sled__cislo">
+                          <input
+                            type="number"
+                            min={3}
+                            max={3600}
+                            aria-label={`Trvanie položky ${index + 1} v sekundách`}
+                            value={i.durationS}
+                            onChange={(e) => trvanie(i.id, Number(e.target.value))}
+                          />
+                          <span className="sled__jednotka">s</span>
+                        </span>
+                      )}
+
+                      <select
+                        className="sled__prechod"
+                        aria-label={`Prechod položky ${index + 1}`}
+                        value={i.transition}
+                        onChange={(e) => prechod(i.id, e.target.value as Transition)}
+                      >
+                        {prechodyPre(i.kind).map((p) => (
+                          <option key={p.hodnota} value={p.hodnota}>
+                            {p.popis}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Šípky zostávajú ako druhá cesta — na telefóne
+                          s dlhším zoznamom je ťahanie otrava. */}
+                      <span className="sled__sipky">
+                        <button
+                          type="button"
+                          className="sled__sipka"
+                          aria-label={`Posunúť položku ${index + 1} vyššie`}
+                          onClick={() => posun(index, -1)}
+                          disabled={index === 0}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="sled__sipka"
+                          aria-label={`Posunúť položku ${index + 1} nižšie`}
+                          onClick={() => posun(index, 1)}
+                          disabled={index === items.length - 1}
+                        >
+                          ↓
+                        </button>
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </>
         )}
-      </div>
+      </section>
 
-      <div className="riadok">
-        <button onClick={uloz}>Uložiť</button>
-        {stav && <span className="ticho">{stav}</span>}
+      {/* --------------------------------------------- zdroje do sledu --- */}
+      {/* JEDNA spoločná sekcia. Menu, ukážkové slidy aj nahraté médiá sú
+          v tej istej mriežke — klient nemá chodiť po troch miestach. */}
+      <section className="karta" style={{ "--i": 2 } as React.CSSProperties}>
+        <h2>Pridať do sledu</h2>
+        <p className="ticho" style={{ marginTop: "0.35rem" }}>
+          Ťuknutím sa položka pridá na koniec sledu.
+        </p>
+
+        <div className="mriezka">
+          <button type="button" className="dlazdica dlazdica--menu" onClick={pridajMenu}>
+            <span className="dlazdica__znak">MENU</span>
+            <span className="dlazdica__popis">živé z ChoiceQR</span>
+          </button>
+
+          {slides.map((s) => {
+            const sedi = s.orientation === orientation;
+            return (
+              <button
+                type="button"
+                key={s.path}
+                className={sedi ? "dlazdica" : "dlazdica dlazdica--inak"}
+                onClick={() => pridajSlide(s.path)}
+                title={
+                  sedi
+                    ? s.label
+                    : `${s.label} — slide je ${POPIS_ORIENTACIE[s.orientation]}, obrazovka ${POPIS_ORIENTACIE[orientation]}`
+                }
+              >
+                <span className="dlazdica__obraz">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={s.path} alt="" />
+                </span>
+                {!sedi && (
+                  <span className="dlazdica__stitok">
+                    {POPIS_ORIENTACIE[s.orientation]}
+                  </span>
+                )}
+                <span className="dlazdica__popis">{s.label}</span>
+              </button>
+            );
+          })}
+
+          {mediaZoznam.map((m) => (
+            <div className="dlazdica" key={m.path}>
+              <button
+                type="button"
+                className="dlazdica__plocha"
+                onClick={() => pridajMedium(m)}
+                title={m.name}
+              >
+                <span
+                  className={
+                    m.kind === "image"
+                      ? "dlazdica__obraz"
+                      : "dlazdica__obraz dlazdica__obraz--video"
+                  }
+                >
+                  {m.kind === "image" ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={m.url} alt="" />
+                  ) : (
+                    /* Video náhľad nekreslíme — prehliadač by si stiahol celý
+                       súbor. Stačí ikona, že ide o video. */
+                    <span aria-hidden="true">▶</span>
+                  )}
+                </span>
+                <span className="dlazdica__popis">
+                  {m.name}
+                  <span className="dlazdica__vaha">{vMB(m.sizeB)}</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="dlazdica__zmaz"
+                aria-label={`Zmazať súbor ${m.name}`}
+                title="Zmazať súbor z úložiska"
+                onClick={() => zmazMedium(m)}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+
+          {mediaDostupne && (
+            <button
+              type="button"
+              className="dlazdica dlazdica--nahrat"
+              onClick={() => vyberSuboru.current?.click()}
+              disabled={nahravam}
+            >
+              <span className="dlazdica__znak">+</span>
+              <span className="dlazdica__popis">
+                {nahravam ? "Nahrávam…" : "Nahrať"}
+              </span>
+            </button>
+          )}
+        </div>
+
+        <input
+          className="skryte-pole"
+          ref={vyberSuboru}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/svg+xml,video/mp4"
+          aria-label="Súbor na nahratie"
+          onChange={(e) => {
+            const subor = e.target.files?.[0];
+            if (subor) nahraj(subor);
+          }}
+        />
+
+        {mediaDostupne ? (
+          <p className="ticho" style={{ marginTop: "0.8rem" }}>
+            {mediaStav ||
+              "JPEG, PNG, WebP, SVG a MP4, najviac 50 MB. Videá hrajú bez zvuku — televízory automatické prehratie so zvukom nedovolia."}
+          </p>
+        ) : (
+          <p className="ticho" style={{ marginTop: "0.8rem" }}>
+            Nahrávanie vlastných obrázkov a videí vyžaduje pripojenú databázu.
+          </p>
+        )}
+      </section>
+
+      {/* ------------------------------------------------ lepiaca lišta --- */}
+      <div className="lista">
+        {chybaUloz ? (
+          <span className="lista__stav" style={{ color: "var(--a-zla)" }}>
+            {chybaUloz}
+          </span>
+        ) : uklada ? (
+          <span className="lista__stav">Ukladám…</span>
+        ) : neulozene ? (
+          <span className="lista__stav lista__stav--neulozene">
+            Neuložené zmeny
+            <small>Kým neuložíš, na televízii sa nič nezmení.</small>
+          </span>
+        ) : uloziloSa ? (
+          <span className="lista__stav lista__stav--ulozene">
+            Uložené
+            <small>TV sa prispôsobí do 15 sekúnd.</small>
+          </span>
+        ) : (
+          <span className="lista__stav">Všetko uložené</span>
+        )}
+        <button
+          type="button"
+          className="tl tl--hlavne"
+          onClick={uloz}
+          disabled={uklada || !neulozene}
+        >
+          {uklada ? "Ukladám…" : "Uložiť"}
+        </button>
       </div>
     </>
   );
