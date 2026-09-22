@@ -3,72 +3,42 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createLocalStore } from "@/lib/storage/local";
-import { DuplicateSlugError, NotFoundError } from "@/lib/storage/types";
-import type { Store } from "@/lib/storage/types";
+import { skontrolujStore } from "./store-kontrakt.test";
 
-let dir: string;
-let store: Store;
-
-beforeEach(async () => {
-  dir = await mkdtemp(path.join(tmpdir(), "tvstore-"));
-  store = createLocalStore(dir);
+// Spoločná sada pre každú implementáciu `Store`. Tá istá sa v ďalšom kroku
+// spustí nad Supabase — a hneď ukáže, či sa správa rovnako.
+skontrolujStore("lokálny súbor", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "tvstore-"));
+  return {
+    store: createLocalStore(dir),
+    uprac: () => rm(dir, { recursive: true, force: true }),
+  };
 });
 
-afterEach(async () => {
-  await rm(dir, { recursive: true, force: true });
-});
+/**
+ * Nižšie ostávajú LEN testy, ktoré sú naozaj o súbore. Do spoločnej sady
+ * nepatria — Supabase žiadny `store.json` nemá.
+ */
+describe("lokálne úložisko (súborové zvláštnosti)", () => {
+  let dir: string;
 
-describe("lokálne úložisko", () => {
-  it("na prázdnom úložisku vráti prázdny zoznam", async () => {
-    expect(await store.listScreens()).toEqual([]);
+  beforeEach(async () => {
+    dir = await mkdtemp(path.join(tmpdir(), "tvstore-"));
   });
 
-  it("vytvorí obrazovku a nájde ju podľa slugu", async () => {
-    const s = await store.createScreen({
-      name: "Hlavná",
-      slug: "hlavna",
-      orientation: "landscape",
-    });
-    expect(s.id).toBeTruthy();
-    expect(s.items).toEqual([]);
-    expect(await store.getScreenBySlug("hlavna")).toEqual(s);
-  });
-
-  it("nedovolí dva rovnaké slugy", async () => {
-    await store.createScreen({ name: "A", slug: "tv", orientation: "landscape" });
-    await expect(
-      store.createScreen({ name: "B", slug: "tv", orientation: "portrait" }),
-    ).rejects.toThrow(DuplicateSlugError);
-  });
-
-  it("úprava posunie updatedAt", async () => {
-    const s = await store.createScreen({
-      name: "A",
-      slug: "a",
-      orientation: "landscape",
-    });
-    const po = await store.updateScreen(s.id, { orientation: "portrait" });
-    expect(po.orientation).toBe("portrait");
-    expect(po.updatedAt).toBeGreaterThan(s.updatedAt);
-  });
-
-  it("zmazanie obrazovku odstráni", async () => {
-    const s = await store.createScreen({
-      name: "A",
-      slug: "a",
-      orientation: "landscape",
-    });
-    await store.deleteScreen(s.id);
-    expect(await store.getScreen(s.id)).toBeNull();
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
   });
 
   it("dáta prežijú nový store nad tým istým priečinkom", async () => {
+    const store = createLocalStore(dir);
     await store.createScreen({ name: "A", slug: "a", orientation: "landscape" });
     const druhy = createLocalStore(dir);
     expect(await druhy.listScreens()).toHaveLength(1);
   });
 
   it("poškodený súbor padne a netvári sa ako prázdne úložisko", async () => {
+    const store = createLocalStore(dir);
     await writeFile(path.join(dir, "store.json"), "toto nie je JSON", "utf8");
     // Keby sa vrátil prázdny zoznam, najbližší zápis by prepísal všetky
     // obrazovky klienta — tichá strata dát.
@@ -79,6 +49,7 @@ describe("lokálne úložisko", () => {
     // Presne taký tvar má `.data/store.json` klienta spred zavedenia
     // prechodov. Keby sa pole nedoplnilo, prehrávač by položke nalepil
     // triedu `polozka--prechod-undefined` a nenastúpila by.
+    const store = createLocalStore(dir);
     await writeFile(
       path.join(dir, "store.json"),
       JSON.stringify({
@@ -101,11 +72,5 @@ describe("lokálne úložisko", () => {
 
     const s = await store.getScreenBySlug("stara");
     expect(s?.items.map((i) => i.transition)).toEqual(["fade", "fade"]);
-  });
-
-  it("úprava neexistujúcej obrazovky padne", async () => {
-    await expect(store.updateScreen("nieje", { name: "X" })).rejects.toThrow(
-      NotFoundError,
-    );
   });
 });
