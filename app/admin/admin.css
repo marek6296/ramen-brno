@@ -81,6 +81,16 @@ body:has(.admin) {
 .admin button.zle { background: #b23b18; }
 
 .riadok { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+
+/* Polia vnútri riadka patria do riadka — bez tohto ich pravidlo pre formuláre
+   roztiahne na celú šírku a rozhádže ovládanie položiek v slede. */
+.riadok input,
+.riadok select {
+  display: inline-block;
+  width: auto;
+  margin-top: 0;
+}
+.riadok select { max-width: 11rem; }
 .riadok--medzi { justify-content: space-between; }
 
 .chyba { color: #b23b18; margin-bottom: 0.75rem; }
