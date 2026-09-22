@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import Nadpis from "./nadpis";
 import type { MenuData } from "@/lib/menu";
 import type { FieldsUvitanie, Slide } from "@/lib/slides/types";
 
@@ -24,8 +25,12 @@ export default function Uvitanie({
   return (
     <div className="slide__telo">
       {f.nazov && (
-        <div className="slide__nadpis" style={dalsie()}>
-          {f.nazov}
+        <div style={dalsie()}>
+          <Nadpis
+            text={f.nazov}
+            trieda="slide__nadpis"
+            rozdelit={slide.animation === "vlna"}
+          />
         </div>
       )}
       {f.kana && (

@@ -172,21 +172,32 @@
    ho prehrávač pri slede — `player.css`. Keby sme tu robili nástupy,
    klient by tú istú vec nastavoval dvakrát a raz by si odporovali.
 
-   Preto sú tieto animácie donekonečna opakujúce sa, nie jednorazové.
-   Len `opacity` a `transform` — nič iné sa na televízore nehýbe plynulo. */
+   Preto sa tieto animácie opakujú donekonečna, nie raz pri príchode.
+   Len `opacity` a `transform` — okrem odlesku, ktorý hýbe pozadím textu
+   a má preto vlastnú poistku nižšie. */
 
-/* Jemné dýchanie: obsah sotva badateľne rastie a klesá. Menej než 3 % —
-   viac by na 50-palcovej obrazovke pôsobilo, že sa obraz pokazil. */
+/* --- pohyb celého obsahu --- */
+
+/* Sotva badateľné, menej než 3 %. Viac by na 50-palcovej obrazovke
+   pôsobilo, že sa obraz pokazil. */
 @keyframes slide-dych {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.025); }
 }
-.slide--anim-dych .slide__telo {
-  animation: slide-dych 9s ease-in-out infinite;
+.slide--anim-dych .slide__telo { animation: slide-dych 9s ease-in-out infinite; }
+
+@keyframes slide-plavanie {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(0.7%, -0.9%); }
+  50% { transform: translate(0, -1.5%); }
+  75% { transform: translate(-0.7%, -0.9%); }
+}
+.slide--anim-plavanie .slide__telo {
+  animation: slide-plavanie 16s ease-in-out infinite;
 }
 
-/* Pomalé priblíženie tam a späť. `alternate` zámerne: bez neho by obraz
-   po doběhnutí skokom zletel naspäť na začiatok. */
+/* `alternate` zámerne: bez neho by obraz po dobehnutí skokom zletel
+   naspäť na začiatok. */
 @keyframes slide-priblizovanie {
   from { transform: scale(1); }
   to { transform: scale(1.07); }
@@ -195,9 +206,110 @@
   animation: slide-priblizovanie 22s ease-in-out infinite alternate;
 }
 
-/* Pulzuje to, čo je v zvýrazňovacej farbe — cena, štítok, japonská ozdoba.
-   Podľa šablóny je to zakaždým niečo iné a to je v poriadku: keď daný
-   prvok na slide nie je, animácia proste nemá čo rozhýbať. */
+/* Pol stupňa stačí — pri väčšom náklone začne byť vidieť, že text nesedí
+   s okrajmi obrazovky. */
+@keyframes slide-naklon {
+  0%, 100% { transform: rotate(-0.5deg); }
+  50% { transform: rotate(0.5deg); }
+}
+.slide--anim-naklon .slide__telo {
+  animation: slide-naklon 11s ease-in-out infinite;
+}
+
+/* --- pohyb nadpisu --- */
+
+/* Pri Novinke nadpis nie je, zato je tam štítok — ten pulzuje namiesto neho,
+   aby možnosť fungovala pri každej šablóne. */
+@keyframes slide-pulz {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.055); }
+}
+.slide--anim-pulz .slide__nadpis,
+.slide--anim-pulz .slide__odkaz,
+.slide--anim-pulz .slide__stitok {
+  display: inline-block;
+  transform-origin: center;
+  animation: slide-pulz 2.4s ease-in-out infinite;
+}
+/* Na výšku je obsah na stred, na šírku vľavo — inline-block by nadpis inak
+   odtrhol od ľavého okraja. */
+.slide--landscape.slide--anim-pulz .slide__nadpis,
+.slide--landscape.slide--anim-pulz .slide__odkaz { transform-origin: left center; }
+
+/* Vlna: písmená sa dvíhajú jedno po druhom. Delenie na písmená robí
+   komponent `Nadpis` a poradie nesie `--z`. */
+@keyframes slide-vlna {
+  0%, 55%, 100% { transform: translateY(0); }
+  27% { transform: translateY(-0.9cqh); }
+}
+.slide__slovo { display: inline-block; white-space: nowrap; }
+.slide__pismeno { display: inline-block; }
+.slide--anim-vlna .slide__pismeno {
+  animation: slide-vlna 2.6s ease-in-out infinite;
+  animation-delay: calc(var(--z, 0) * 70ms);
+}
+
+/* Odlesk prebiehajúci po nadpise. Jediná animácia, ktorá nehýbe
+   `transform` ani `opacity` — posúva pozadie orezané tvarom písmen. */
+@keyframes slide-lesk {
+  from { background-position: -140% 0; }
+  to { background-position: 240% 0; }
+}
+.slide--anim-lesk .slide__nadpis,
+.slide--anim-lesk .slide__odkaz {
+  background-image: linear-gradient(
+    100deg,
+    currentColor 42%,
+    var(--s-zvyr) 50%,
+    currentColor 58%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: slide-lesk 5.5s linear infinite;
+}
+/* Keby prehliadač televízora orezanie pozadia tvarom písmen nevedel,
+   ostal by nadpis priehľadný, teda neviditeľný. Radšej bez efektu než
+   prázdna stena. */
+@supports not ((background-clip: text) or (-webkit-background-clip: text)) {
+  .slide--anim-lesk .slide__nadpis,
+  .slide--anim-lesk .slide__odkaz {
+    background-image: none;
+    color: inherit;
+    animation: none;
+  }
+}
+
+/* Linka sa pod nadpisom stále nanovo vykresľuje zľava doprava. */
+@keyframes slide-podciarknutie {
+  0% { transform: scaleX(0); opacity: 1; }
+  55% { transform: scaleX(1); opacity: 1; }
+  85%, 100% { transform: scaleX(1); opacity: 0; }
+}
+.slide--anim-podciarknutie .slide__nadpis,
+.slide--anim-podciarknutie .slide__odkaz {
+  position: relative;
+  display: inline-block;
+}
+.slide--anim-podciarknutie .slide__nadpis::after,
+.slide--anim-podciarknutie .slide__odkaz::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.8cqh;
+  height: 0.5cqh;
+  background: var(--s-zvyr);
+  transform-origin: left center;
+  animation: slide-podciarknutie 4.5s ease-in-out infinite;
+}
+
+/* --- pohyb zvýraznených prvkov --- */
+
+/* Pulzuje to, čo je v zvýrazňovacej farbe. Podľa šablóny je to zakaždým
+   niečo iné a to je v poriadku. */
 @keyframes slide-zvyraznenie {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -208,12 +320,10 @@
   animation: slide-zvyraznenie 2.8s ease-in-out infinite;
 }
 /* Preškrtnutá pôvodná cena nepulzuje — nie je to ona, na čo má hosť pozerať. */
-.slide--anim-zvyraznenie .slide__cena--stara {
-  animation: none;
-}
+.slide--anim-zvyraznenie .slide__cena--stara { animation: none; }
 
-/* Postupné odkrývanie: riadky nastúpia jeden po druhom. Poradie určuje
-   `--poradie`, ktoré nastavuje komponent šablóny. */
+/* --- odkrytie obsahu --- */
+
 @keyframes slide-nastup {
   from { opacity: 0; transform: translateY(2cqh); }
   to { opacity: 1; transform: none; }
@@ -228,6 +338,11 @@
 @media (prefers-reduced-motion: reduce) {
   .slide__telo,
   .slide__telo > *,
+  .slide__nadpis,
+  .slide__nadpis::after,
+  .slide__odkaz,
+  .slide__odkaz::after,
+  .slide__pismeno,
   .slide__cena,
   .slide__stitok,
   .slide__kana { animation: none !important; }

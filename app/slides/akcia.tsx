@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import Nadpis from "./nadpis";
 import { najdiJedla } from "@/lib/slides/jedla";
 import type { MenuData } from "@/lib/menu";
 import type { FieldsAkcia, Slide } from "@/lib/slides/types";
@@ -25,7 +26,11 @@ export default function Akcia({
     <div className="slide__telo">
       {f.nadpis && (
         <div style={dalsie()}>
-          <div className="slide__nadpis">{f.nadpis}</div>
+          <Nadpis
+            text={f.nadpis}
+            trieda="slide__nadpis"
+            rozdelit={slide.animation === "vlna"}
+          />
           {f.nadpisEn && <div className="slide__nadpis-en">{f.nadpisEn}</div>}
         </div>
       )}

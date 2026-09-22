@@ -7,7 +7,13 @@ export type SlideVariant = "papier" | "tmava" | "oranzova";
 export type SlideAnimation =
   | "ziadna"
   | "dych"
+  | "plavanie"
   | "priblizovanie"
+  | "naklon"
+  | "pulz"
+  | "vlna"
+  | "lesk"
+  | "podciarknutie"
   | "zvyraznenie"
   | "postupne";
 
@@ -133,12 +139,46 @@ export const ANIMACIE: {
   {
     hodnota: "dych",
     popis: "Jemné dýchanie",
-    popisDlhy: "Obsah pomaly rastie a klesá, dokola celý čas.",
+    popisDlhy: "Obsah sotva badateľne rastie a klesá, dokola celý čas.",
+  },
+  {
+    hodnota: "plavanie",
+    popis: "Pomalé plávanie",
+    popisDlhy: "Obsah sa zľahka nesie po slide, akoby sa vznášal.",
   },
   {
     hodnota: "priblizovanie",
     popis: "Pomalé priblíženie",
     popisDlhy: "Obsah sa po celý čas nenápadne približuje a zase vzďaľuje.",
+  },
+  {
+    hodnota: "naklon",
+    popis: "Jemné kývanie",
+    popisDlhy: "Obsah sa pomaly nakláňa raz na jednu, raz na druhú stranu.",
+  },
+  {
+    hodnota: "pulz",
+    popis: "Pulzujúci nadpis",
+    popisDlhy:
+      "Nadpis — pri Novinke štítok — rytmicky pulzuje, aby pritiahol pohľad cez celú miestnosť.",
+  },
+  {
+    hodnota: "vlna",
+    popis: "Vlniaci sa nadpis",
+    popisDlhy: "Písmená nadpisu sa jedno po druhom zdvíhajú ako vlna.",
+    lenPre: ["akcia", "uvitanie", "oznamenie"],
+  },
+  {
+    hodnota: "lesk",
+    popis: "Prebeh lesku",
+    popisDlhy: "Po nadpise dokola prebieha svetlý odlesk.",
+    lenPre: ["akcia", "uvitanie", "oznamenie"],
+  },
+  {
+    hodnota: "podciarknutie",
+    popis: "Podčiarknutie nadpisu",
+    popisDlhy: "Pod nadpisom sa stále nanovo vykresľuje farebná linka.",
+    lenPre: ["akcia", "uvitanie", "oznamenie"],
   },
   {
     hodnota: "zvyraznenie",

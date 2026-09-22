@@ -73,10 +73,20 @@ describe("animácie slidu", () => {
   it("animácie bežia dokola, nie sú to jednorazové nástupy", () => {
     // Jednorazový nástup je prechod. Keby sa sem vrátil, zoznamy by sa
     // prekrývali a klient by nevedel, čo kde nastavuje.
+    //
+    // `postupne` je zámerná výnimka: odkrýva riadky po zobrazení a opakovať
+    // sa nemá. `ziadna` nemá čo robiť.
+    const jednorazove = ["ziadna", "postupne"];
+    const pravidla = cssSlidov.split("}");
+
     for (const a of ANIMACIE) {
-      if (a.hodnota === "ziadna" || a.hodnota === "postupne") continue;
-      const blok = cssSlidov.slice(cssSlidov.indexOf(`.slide--anim-${a.hodnota}`));
-      expect(blok.slice(0, 220)).toContain("infinite");
+      if (jednorazove.includes(a.hodnota)) continue;
+      const patriace = pravidla.filter((r) => r.includes(`.slide--anim-${a.hodnota}`));
+      expect(patriace.length, `${a.hodnota}: žiadne CSS pravidlo`).toBeGreaterThan(0);
+      expect(
+        patriace.some((r) => r.includes("infinite")),
+        `${a.hodnota}: animácia sa neopakuje`,
+      ).toBe(true);
     }
   });
 
