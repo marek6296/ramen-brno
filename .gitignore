@@ -17,3 +17,6 @@ tsconfig.tsbuildinfo
 # lokálne env (zatiaľ žiadne netreba — API je verejné, bez tokenu)
 .env
 .env*.local
+
+.data
+.env*.local
