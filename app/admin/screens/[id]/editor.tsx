@@ -126,15 +126,16 @@ export default function Editor({
   function pridajMenu() {
     setItems((z) => [
       ...z,
-      // `repeats` nesie každá položka, aby typ sedel; využije ho len video
-      { id: novyId(), kind: "menu", mediaPath: "", durationS: 30, transition: "fade", repeats: 1 },
+      // `repeats` a `slideId` nesie každá položka, aby typ sedel; využije ich
+      // len video, resp. slide
+      { id: novyId(), kind: "menu", mediaPath: "", durationS: 30, transition: "fade", repeats: 1, slideId: "" },
     ]);
   }
 
   function pridajSlide(path: string) {
     setItems((z) => [
       ...z,
-      { id: novyId(), kind: "image", mediaPath: path, durationS: 10, transition: "fade", repeats: 1 },
+      { id: novyId(), kind: "image", mediaPath: path, durationS: 10, transition: "fade", repeats: 1, slideId: "" },
     ]);
   }
 
@@ -154,6 +155,8 @@ export default function Editor({
         transition: "fade",
         // nové video sa štandardne prehrá raz a ide sa ďalej
         repeats: 1,
+        // médium z knižnice nikdy nie je slide
+        slideId: "",
       },
     ]);
   }

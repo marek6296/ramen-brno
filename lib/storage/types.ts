@@ -3,8 +3,7 @@ export type Orientation = "landscape" | "portrait";
 /** ako sa má obraz otočiť; viď `rotation` na `Screen` */
 export type Rotation = "none" | "left" | "right";
 
-/** `video` sa spracováva až v 2. etape, typ je tu, aby sa model nemusel meniť */
-export type ItemKind = "menu" | "image" | "video";
+export type ItemKind = "menu" | "image" | "video" | "slide";
 
 export type Transition = "fade" | "slide" | "zoom" | "none";
 
@@ -28,6 +27,8 @@ export type PlaylistItem = {
   transition: Transition;
   /** len pri `video`: koľkokrát sa má klip prehrať, než sa ide ďalej */
   repeats: number;
+  /** len pri `slide`: odkaz do tabuľky slidov; inde prázdny reťazec */
+  slideId: string;
 };
 
 export type Screen = {

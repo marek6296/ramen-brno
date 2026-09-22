@@ -52,15 +52,21 @@ type Riadok = {
  * To isté platí pre `repeats` (počet prehratí videa): staré položky ho nemajú
  * a prehrávač by čakal na `undefined` prehratí, teda navždy. `1` je pôvodné
  * správanie — klip sa prehrá raz a ide sa ďalej.
+ *
+ * To isté platí aj pre `slideId`: položky uložené pred zavedením slidov ho
+ * nemajú vôbec. Prázdny reťazec je pôvodné správanie — mimo `slide` sa aj tak
+ * nepoužíva.
  */
 function dopln(it: PlaylistItem): PlaylistItem {
   const prechodSedi = PRECHODY.includes(it?.transition);
   const opakovaniaSedia = Number.isInteger(it?.repeats) && it.repeats >= 1;
-  if (prechodSedi && opakovaniaSedia) return it;
+  const slideIdSedi = typeof it?.slideId === "string";
+  if (prechodSedi && opakovaniaSedia && slideIdSedi) return it;
   return {
     ...it,
     transition: prechodSedi ? it.transition : "fade",
     repeats: opakovaniaSedia ? it.repeats : 1,
+    slideId: slideIdSedi ? it.slideId : "",
   };
 }
 

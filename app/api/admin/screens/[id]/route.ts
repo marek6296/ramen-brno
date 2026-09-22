@@ -40,7 +40,10 @@ export async function PATCH(req: Request, { params }: Ctx) {
     patch.items = body.items.map(
       (it: PlaylistItem): PlaylistItem => ({
         id: String(it.id),
-        kind: it.kind === "image" || it.kind === "video" ? it.kind : "menu",
+        kind:
+          it.kind === "image" || it.kind === "video" || it.kind === "slide"
+            ? it.kind
+            : "menu",
         mediaPath: String(it.mediaPath ?? ""),
         // pod 3 s by nikto nestihol prečítať, nad hodinu nemá zmysel
         durationS: Math.min(3600, Math.max(3, Math.round(Number(it.durationS) || 10))),
@@ -53,6 +56,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
         // (chýbajúce pole, text, desatinné číslo) padá na 1 — pôvodné
         // správanie, klip sa prehrá raz a ide sa ďalej.
         repeats: Math.min(20, Math.max(1, Math.round(Number(it.repeats)) || 1)),
+        // len pri `slide` dáva zmysel; inde sa ignoruje, tak nech je prázdny
+        slideId: it.kind === "slide" ? String(it.slideId ?? "") : "",
       }),
     );
   }
