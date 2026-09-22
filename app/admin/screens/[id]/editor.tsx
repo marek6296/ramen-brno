@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import type { DemoSlide } from "@/lib/slides";
+import type { DemoSlide } from "@/lib/demo-slides";
 // ZÁMERNE z `lib/media-typy`, nie z `lib/media`: ten druhý siaha na service
 // role kľúč a je výhradne serverový, tu je len tvar dát.
 import type { MediaFile } from "@/lib/media-typy";

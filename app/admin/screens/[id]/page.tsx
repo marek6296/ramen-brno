@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getStore } from "@/lib/storage";
 import { isLoggedIn } from "@/lib/session";
-import { DEMO_SLIDES } from "@/lib/slides";
+import { DEMO_SLIDES } from "@/lib/demo-slides";
 import { listMedia, mediaJeDostupne } from "@/lib/media";
 import Editor from "./editor";
 
