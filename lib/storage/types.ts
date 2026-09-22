@@ -5,7 +5,42 @@ export type Rotation = "none" | "left" | "right";
 
 export type ItemKind = "menu" | "image" | "video" | "slide";
 
-export type Transition = "fade" | "slide" | "zoom" | "none";
+export type Transition =
+  | "fade"
+  | "fade-slow"
+  | "fade-fast"
+  | "slide"
+  | "slide-left"
+  | "slide-up"
+  | "slide-down"
+  | "zoom"
+  | "zoom-in"
+  | "none";
+
+/**
+ * Jediný zoznam prechodov — ponuka v adminovi aj validácia v oboch
+ * úložiskách čítajú odtiaľto. Bol rozpísaný na troch miestach a nový
+ * prechod by sa musel doplniť do každého; ktorý by sa zabudol, ten by
+ * úložisko ticho prepísalo na „prelínanie".
+ *
+ * `posuva` znamená, že prechod hýbe obsahom cez `transform`. Menu si po
+ * zobrazení meria vlastné rozmery, aby sa rozhodlo, či zhustiť sadzbu,
+ * a transform mu tie rozmery skreslí — preto sa pri menu neponúka.
+ */
+export const PRECHODY: { hodnota: Transition; popis: string; posuva: boolean }[] = [
+  { hodnota: "fade", popis: "Prelínanie", posuva: false },
+  { hodnota: "fade-slow", popis: "Pomalé prelínanie", posuva: false },
+  { hodnota: "fade-fast", popis: "Rýchle prelínanie", posuva: false },
+  { hodnota: "slide", popis: "Posun sprava", posuva: true },
+  { hodnota: "slide-left", popis: "Posun zľava", posuva: true },
+  { hodnota: "slide-up", popis: "Posun zdola", posuva: true },
+  { hodnota: "slide-down", popis: "Posun zhora", posuva: true },
+  { hodnota: "zoom", popis: "Oddialenie", posuva: true },
+  { hodnota: "zoom-in", popis: "Priblíženie", posuva: true },
+  { hodnota: "none", popis: "Bez prechodu", posuva: false },
+];
+
+export const PRECHODY_HODNOTY: Transition[] = PRECHODY.map((p) => p.hodnota);
 
 /**
  * Položky uložené pred zavedením prechodov pole `transition` nemajú. Preto sa

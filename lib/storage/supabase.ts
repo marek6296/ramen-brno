@@ -1,4 +1,4 @@
-import { DuplicateSlugError, NotFoundError } from "./types";
+import { DuplicateSlugError, NotFoundError, PRECHODY_HODNOTY } from "./types";
 import type {
   NewScreen,
   Orientation,
@@ -22,7 +22,6 @@ import type {
  * komponentov.
  */
 
-const PRECHODY: Transition[] = ["fade", "slide", "zoom", "none"];
 
 const OTOCENIA: Rotation[] = ["none", "left", "right"];
 
@@ -58,7 +57,7 @@ type Riadok = {
  * nepoužíva.
  */
 function dopln(it: PlaylistItem): PlaylistItem {
-  const prechodSedi = PRECHODY.includes(it?.transition);
+  const prechodSedi = PRECHODY_HODNOTY.includes(it?.transition);
   const opakovaniaSedia = Number.isInteger(it?.repeats) && it.repeats >= 1;
   const slideIdSedi = typeof it?.slideId === "string";
   if (prechodSedi && opakovaniaSedia && slideIdSedi) return it;

@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { DuplicateSlugError, NotFoundError } from "./types";
+import { DuplicateSlugError, NotFoundError, PRECHODY_HODNOTY } from "./types";
 import type {
   NewScreen,
   PlaylistItem,
@@ -14,7 +14,6 @@ import type {
 
 type Data = { screens: Screen[] };
 
-const PRECHODY: Transition[] = ["fade", "slide", "zoom", "none"];
 
 const OTOCENIA: Rotation[] = ["none", "left", "right"];
 
@@ -44,7 +43,7 @@ function doplnOtocenie(s: Screen): Screen {
  * nepoužíva.
  */
 function dopln(it: PlaylistItem): PlaylistItem {
-  const prechodSedi = PRECHODY.includes(it?.transition);
+  const prechodSedi = PRECHODY_HODNOTY.includes(it?.transition);
   const opakovaniaSedia = Number.isInteger(it?.repeats) && it.repeats >= 1;
   const slideIdSedi = typeof it?.slideId === "string";
   if (prechodSedi && opakovaniaSedia && slideIdSedi) return it;

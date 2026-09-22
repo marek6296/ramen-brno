@@ -5,6 +5,7 @@ import Link from "next/link";
 // ZÁMERNE z `lib/media-typy`, nie z `lib/media`: ten druhý siaha na service
 // role kľúč a je výhradne serverový, tu je len tvar dát.
 import type { MediaFile } from "@/lib/media-typy";
+import { PRECHODY } from "@/lib/storage/types";
 import type {
   Orientation,
   PlaylistItem,
@@ -14,18 +15,9 @@ import type {
 } from "@/lib/storage/types";
 import type { Slide } from "@/lib/slides/types";
 
-/** popisky prechodov pre obsluhu — poradie je aj poradím v ponuke */
-const PRECHODY: { hodnota: Transition; popis: string; posuva: boolean }[] = [
-  { hodnota: "fade", popis: "Prelínanie", posuva: false },
-  { hodnota: "slide", popis: "Posun", posuva: true },
-  { hodnota: "zoom", popis: "Priblíženie", posuva: true },
-  { hodnota: "none", popis: "Bez prechodu", posuva: false },
-];
-
 /**
- * Menu si po zobrazení meria vlastné rozmery, aby sa rozhodlo, či zhustiť
- * sadzbu. Posun a priblíženie mu tie rozmery skreslia, takže ich prehrávač
- * pri menu ignoruje. Radšej ich teda vôbec neponúkame, než aby klient vyberal
+ * Prechody, ktoré hýbu obsahom, prehrávač pri menu ignoruje — skreslili by
+ * mu meranie sadzby. Radšej ich teda vôbec neponúkame, než aby klient vyberal
  * niečo, čo sa potom potichu nepoužije.
  */
 const prechodyPre = (kind: PlaylistItem["kind"]) =>

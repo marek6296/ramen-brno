@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@/lib/storage";
 import { isLoggedIn } from "@/lib/session";
-import { DuplicateSlugError, NotFoundError } from "@/lib/storage/types";
+import {
+  DuplicateSlugError,
+  NotFoundError,
+  PRECHODY_HODNOTY,
+} from "@/lib/storage/types";
 import type { PlaylistItem, ScreenPatch } from "@/lib/storage/types";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -48,7 +52,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
         // pod 3 s by nikto nestihol prečítať, nad hodinu nemá zmysel
         durationS: Math.min(3600, Math.max(3, Math.round(Number(it.durationS) || 10))),
         // staré položky pole nemajú a z prehliadača môže prísť čokoľvek
-        transition: ["fade", "slide", "zoom", "none"].includes(it.transition)
+        // Zoznam čítame z `PRECHODY_HODNOTY`, nie napevno tu. Toto bola
+        // štvrtá kópia a nový prechod cez ňu ticho prepadol na „fade“.
+        transition: PRECHODY_HODNOTY.includes(it.transition)
           ? it.transition
           : "fade",
         // Počet prehratí videa. Menej než raz nedáva zmysel a nad 20-krát by
