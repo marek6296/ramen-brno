@@ -1,156 +1,1036 @@
-/* Produkčné globals.css zamyká stránku na celú obrazovku bez rolovania —
-   pre TV správne, pre admin nie. Odomykáme to len tam, kde je admin obal,
-   aby sa produkčný súbor nemusel meniť. */
+/* ==========================================================================
+   Admin — „tmavý pult, papierové karty"
+
+   Obal aplikácie je takmer čierny so zrnitosťou, obsah leží na teplom papieri.
+   Jedna sýta oranžová je JEDINÁ akčná farba, všetko ostatné je tichá
+   typografia. Mobil je prvý: každý dotykový cieľ má najmenej 44 px na výšku
+   a nič sa neláme do nečitateľného stĺpca.
+   ========================================================================== */
+
+:root {
+  --a-cierna:      #141210; /* obal aplikácie */
+  --a-cierna-2:    #1f1b17; /* vyvýšené plochy v tmavom */
+  --a-papier:      #faf7f0; /* karty */
+  --a-papier-2:    #efe9dd; /* vnorené plochy v kartách */
+  --a-ink:         #17130f;
+  --a-ink-2:       #4a4139;
+  --a-ink-3:       #8a7f70;
+  --a-oranz:       #e2611a; /* JEDINÁ akčná farba */
+  --a-oranz-tmava: #a8500c;
+  --a-zla:         #c0392b;
+  --a-zelena:      #3f6b34;
+  --a-linka:       rgba(23, 19, 15, 0.12);
+
+  --a-nadpis: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --a-text: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --a-mono: "DM Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --a-r: 1rem;          /* rádius kariet */
+  --a-r-2: 0.6rem;      /* rádius ovládania */
+  --a-dotyk: 2.75rem;   /* 44 px — najmenší dotykový cieľ */
+}
+
 /* `globals.css` zamyká stránku na výšku okna bez rolovania — na televízore
    správne, v adminovi nie. Odomknúť treba OBA prvky: `overflow: hidden` na
-   `html` odreže obsah aj vtedy, keď `body` rolovať smie. */
+   `html` odreže obsah aj vtedy, keď `body` rolovať smie.
+   TOTO NEMAZAŤ — bez toho sa admin nedá rolovať. */
 html:has(.admin),
 body:has(.admin) {
   height: auto;
-  /* bez min-height by pod obsahom presvital tmavý podklad z globals.css */
+  /* bez min-height by pod obsahom presvital iný podklad z globals.css */
   min-height: 100vh;
   overflow: auto;
-  background: #f4f2ec;
+  background: var(--a-cierna);
+  color: var(--a-papier);
 }
+
+/* --------------------------------------------------------------- obal --- */
 
 .admin {
-  max-width: 60rem;
-  margin: 0 auto;
-  padding: 2rem 1.25rem 6rem;
+  position: relative;
+  min-height: 100vh;
+  font-family: var(--a-text);
   font-size: 16px;
   line-height: 1.5;
-  color: #14110f;
+  color: var(--a-papier);
+  background: var(--a-cierna);
+  -webkit-text-size-adjust: 100%;
 }
 
-.admin a { color: #a8500c; }
+/* Zrnitosť je CSS, nie obrázok — jemný bodkový raster cez celú plochu.
+   `fixed`, aby sa pri rolovaní nehýbala a pôsobila ako povrch pultu. */
+.admin::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    radial-gradient(rgba(0, 0, 0, 0.35) 1px, transparent 1px);
+  background-size: 3px 3px, 5px 5px;
+  background-position: 0 0, 1px 2px;
+}
 
-.admin__hlavicka {
+.admin__obal {
+  position: relative;
+  z-index: 1;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1.25rem 1rem calc(2rem + env(safe-area-inset-bottom, 0px));
+}
+
+.admin *,
+.admin *::before,
+.admin *::after {
+  box-sizing: border-box;
+}
+
+.admin h1,
+.admin h2,
+.admin h3 {
+  font-family: var(--a-nadpis);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+/* ----------------------------------------------------------- hlavička --- */
+
+.hlavicka {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid rgba(20, 17, 15, 0.15);
-  padding-bottom: 0.75rem;
+  gap: 0.75rem;
+  padding: 0.5rem 0 1rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(250, 247, 240, 0.12);
 }
 
-.admin__hlavicka h1 { font-size: 1.5rem; letter-spacing: 0.02em; }
+.hlavicka h1 {
+  font-size: clamp(1.55rem, 7vw, 2.15rem);
+  color: var(--a-papier);
+}
+
+.hlavicka__popis {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: var(--a-text);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--a-ink-3);
+}
+
+/* ------------------------------------------------------------- karty --- */
 
 .karta {
-  background: #fff;
-  border: 1px solid rgba(20, 17, 15, 0.12);
-  border-radius: 0.5rem;
-  padding: 1.25rem;
-  margin-bottom: 1rem;
+  position: relative;
+  background: var(--a-papier);
+  color: var(--a-ink);
+  border-radius: var(--a-r);
+  padding: 1.1rem;
+  margin-bottom: 0.9rem;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0.75rem 1.5rem rgba(0, 0, 0, 0.35);
+  /* jemný nástup po načítaní; `--i` nesie poradie karty (stagger) */
+  animation: a-nastup 420ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
 }
 
-.karta--uzka { max-width: 24rem; margin: 4rem auto; }
+.karta h2 {
+  font-size: 1.3rem;
+  color: var(--a-ink);
+}
 
-.karta h1, .karta h2 { margin-bottom: 1rem; font-size: 1.15rem; }
+.karta h3 {
+  font-size: 0.8rem;
+  font-family: var(--a-text);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--a-ink-3);
+}
 
-.admin label {
+.karta--uzka {
+  max-width: 22rem;
+  margin: 0 auto;
+}
+
+@keyframes a-nastup {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --------------------------------------------------------- typografia --- */
+
+.ticho {
+  color: var(--a-ink-3);
+  font-size: 0.88rem;
+}
+
+.chyba {
+  color: var(--a-zla);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0.5rem 0 0;
+}
+
+.hotovo {
+  color: var(--a-zelena);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.admin a {
+  color: var(--a-oranz);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.admin a:hover {
+  text-decoration: underline;
+}
+
+/* odkaz, ktorý vyzerá ako tlačidlo, sa nesmie podčiarkovať */
+.admin a.tl,
+.admin a.tl:hover {
+  text-decoration: none;
+}
+
+/* --------------------------------------------------------- ovládanie --- */
+
+.pole {
   display: block;
   margin-bottom: 0.9rem;
-  font-size: 0.85rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #6b6459;
 }
 
-.admin input,
-.admin select {
+.pole__popis {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--a-ink-3);
+}
+
+.admin input[type="text"],
+.admin input[type="password"],
+.admin input[type="number"] {
   display: block;
   width: 100%;
-  margin-top: 0.3rem;
-  padding: 0.6rem 0.7rem;
+  min-height: var(--a-dotyk);
+  padding: 0.55rem 0.8rem;
   font: inherit;
-  color: #14110f;
-  background: #fff;
-  border: 1px solid rgba(20, 17, 15, 0.25);
-  border-radius: 0.35rem;
+  font-family: var(--a-text);
+  color: var(--a-ink);
+  background: var(--a-papier-2);
+  border: 1px solid var(--a-linka);
+  border-radius: var(--a-r-2);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
-.admin button {
-  font: inherit;
-  padding: 0.6rem 1.1rem;
-  border: none;
-  border-radius: 0.35rem;
-  background: #14110f;
-  color: #f4f2ec;
+.admin input:focus-visible,
+.admin select:focus-visible,
+.admin button:focus-visible {
+  outline: none;
+  border-color: var(--a-oranz);
+  box-shadow: 0 0 0 3px rgba(226, 97, 26, 0.28);
+}
+
+.admin input::placeholder {
+  color: var(--a-ink-3);
+}
+
+/* Súborové pole je vždy skryté — nahrávanie sa spúšťa dlaždicou „+ Nahrať". */
+.skryte-pole {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------------- tlačidlá --- */
+
+.tl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--a-dotyk);
+  padding: 0.5rem 1.1rem;
+  font-family: var(--a-text);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--a-ink);
+  background: transparent;
+  border: 1px solid var(--a-linka);
+  border-radius: var(--a-r-2);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms ease, background-color 140ms ease,
+    border-color 140ms ease, color 140ms ease, opacity 140ms ease;
+}
+
+.tl:active {
+  transform: scale(0.96);
+}
+
+.tl[disabled] {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tl[disabled]:active {
+  transform: none;
+}
+
+/* jediná akčná farba — používa ju vždy len JEDNO tlačidlo v zornom poli */
+.tl--hlavne {
+  color: #fff;
+  background: var(--a-oranz);
+  border-color: var(--a-oranz);
+  box-shadow: 0 0.35rem 0.9rem rgba(226, 97, 26, 0.3);
+}
+
+.tl--hlavne:hover {
+  background: var(--a-oranz-tmava);
+  border-color: var(--a-oranz-tmava);
+}
+
+.tl--ticho {
+  color: var(--a-ink-2);
+  background: var(--a-papier-2);
+}
+
+.tl--ticho:hover {
+  color: var(--a-ink);
+  border-color: rgba(23, 19, 15, 0.3);
+}
+
+/* Zmazanie je najprv tiché. Červené je až vtedy, keď pýta potvrdenie —
+   inak by na karte svietila druhá farba a konkurovala oranžovej. */
+.tl--zle {
+  color: var(--a-ink-3);
+  background: transparent;
+  border-color: transparent;
+  font-weight: 500;
+}
+
+.tl--zle:hover {
+  color: var(--a-zla);
+}
+
+.tl--zle-potvrd {
+  color: #fff;
+  background: var(--a-zla);
+  border-color: var(--a-zla);
+  font-weight: 600;
+}
+
+/* tlačidlo na tmavom podklade (hlavička, lepiaca lišta) */
+.tl--tmave {
+  color: var(--a-papier);
+  background: rgba(250, 247, 240, 0.08);
+  border-color: rgba(250, 247, 240, 0.18);
+}
+
+.tl--tmave:hover {
+  background: rgba(250, 247, 240, 0.16);
+}
+
+.tl--male {
+  min-height: 2.25rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.tl--siroke {
+  width: 100%;
+}
+
+/* --------------------------------------------------- odznak orientácie --- */
+
+/* Orientácia zostáva `<select>` (prepne sa jedným ťuknutím a hneď sa uloží),
+   len vyzerá ako štítok. */
+.odznak {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.odznak::after {
+  content: "▾";
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 0.7rem;
+  color: var(--a-ink-3);
+}
+
+.odznak select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: var(--a-dotyk);
+  padding: 0.35rem 1.75rem 0.35rem 0.85rem;
+  font-family: var(--a-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--a-ink-2);
+  background: var(--a-papier-2);
+  border: 1px solid var(--a-linka);
+  border-radius: 999px;
   cursor: pointer;
 }
 
-.admin button[disabled] { opacity: 0.5; cursor: default; }
-.admin button.vedlajsie { background: transparent; color: #14110f; border: 1px solid rgba(20, 17, 15, 0.3); }
-.admin button.zle { background: #b23b18; }
-
-.riadok { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-
-/* Polia vnútri riadka patria do riadka — bez tohto ich pravidlo pre formuláre
-   roztiahne na celú šírku a rozhádže ovládanie položiek v slede. */
-.riadok input,
-.riadok select {
-  display: inline-block;
-  width: auto;
-  margin-top: 0;
+.odznak select[disabled] {
+  opacity: 0.5;
+  cursor: progress;
 }
-.riadok select { max-width: 11rem; }
-.riadok--medzi { justify-content: space-between; }
 
-.chyba { color: #b23b18; margin-bottom: 0.75rem; }
-.ticho { color: #6b6459; font-size: 0.9rem; }
+/* ------------------------------------------------------------ adresa --- */
 
-.odkaz-tv {
-  font-family: ui-monospace, Menlo, Consolas, monospace;
+.adresa {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.9rem 0 0;
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  background: var(--a-papier-2);
+  border-radius: var(--a-r-2);
+}
+
+.adresa__text {
+  flex: 1 1 10rem;
+  font-family: var(--a-mono);
   font-size: 0.9rem;
-  background: #f4f2ec;
-  padding: 0.35rem 0.5rem;
-  border-radius: 0.25rem;
+  color: var(--a-ink-2);
   word-break: break-all;
 }
 
-/* Zoznam nahratých médií. Náhľad je zámerne malý — v adminovi ide o to,
-   spoznať správny súbor, nie si ho prezerať. */
-.media {
+/* ------------------------------------------------------- pás sledu --- */
+
+/* Rad malých dlaždíc v poradí prehrávania — majiteľ na prvý pohľad vidí,
+   čo na tej televízii beží. */
+.pas {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin: 0.85rem 0 0;
+  padding: 0;
   list-style: none;
-  margin-top: 0.8rem;
+}
+
+.pas__dlazdica {
+  position: relative;
+  width: 3.25rem;
+  height: 2.4rem;
+  flex: none;
+  overflow: hidden;
+  border-radius: 0.4rem;
+  background: var(--a-papier-2);
+  border: 1px solid var(--a-linka);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pas__dlazdica img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pas__dlazdica--menu {
+  background: var(--a-oranz);
+  border-color: var(--a-oranz);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.pas__dlazdica--video {
+  background: var(--a-ink);
+  border-color: var(--a-ink);
+  color: var(--a-papier);
+  font-size: 0.9rem;
+}
+
+/* ----------------------------------------------------- akcie na karte --- */
+
+.akcie {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--a-linka);
+}
+
+.akcie__medzera {
+  flex: 1 1 auto;
+}
+
+.hlava-karty {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ======================================================= EDITOR ======== */
+
+/* ------------------------------------------ nastavenia obrazovky ------- */
+
+/* Nastavenia sú v editore len hlavička, nie celá obrazovka — na šírke
+   telefónu na výšku pod sebou, inde názov a orientácia vedľa seba. */
+.nastavenia {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 0.9rem;
+  margin-top: 0.9rem;
+}
+
+@media (min-width: 30rem) {
+  .nastavenia {
+    grid-template-columns: 1fr auto;
+    align-items: end;
+  }
+}
+
+/* --------------------------------------------- mriežka zdrojov slidov --- */
+
+/* JEDNA spoločná mriežka: menu, ukážkové slidy aj nahraté médiá vedľa seba.
+   Klient nemá chodiť po troch oddelených sekciách. */
+.mriezka {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+
+.dlazdica {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  min-height: 6.5rem;
+  background: var(--a-papier-2);
+  border: 1px solid var(--a-linka);
+  border-radius: 0.7rem;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--a-text);
+  color: var(--a-ink);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms ease, border-color 140ms ease,
+    box-shadow 140ms ease, opacity 140ms ease;
+}
+
+.dlazdica:active {
+  transform: scale(0.96);
+}
+
+.dlazdica:hover {
+  border-color: var(--a-oranz);
+}
+
+.dlazdica[disabled] {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Dlaždica nahratého média nesie aj × na zmazanie. Tlačidlo v tlačidle je
+   neplatné HTML, preto je vonkajšok `<div>` a klikacia plocha je vnútri. */
+.dlazdica__plocha {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+  flex: 1 1 auto;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: inherit;
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dlazdica:has(.dlazdica__plocha:active) {
+  transform: scale(0.96);
+}
+
+.dlazdica__obraz {
+  flex: 1 1 auto;
+  min-height: 3.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  overflow: hidden;
+}
+
+.dlazdica__obraz img {
+  width: 100%;
+  height: 100%;
+  max-height: 5rem;
+  object-fit: cover;
+  display: block;
+}
+
+/* Video náhľad nekreslíme — prehliadač by si stiahol celý súbor.
+   Stačí ikona, že ide o video. */
+.dlazdica__obraz--video {
+  background: var(--a-ink);
+  color: var(--a-papier);
+  font-size: 1.4rem;
+}
+
+.dlazdica__popis {
+  padding: 0.4rem 0.5rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--a-ink-2);
+  word-break: break-word;
+}
+
+.dlazdica__vaha {
+  display: block;
+  margin-top: 0.1rem;
+  font-family: var(--a-mono);
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: var(--a-ink-3);
+}
+
+/* MENU je živý zdroj a patrí prvé — jediná oranžová dlaždica v mriežke. */
+.dlazdica--menu {
+  background: var(--a-oranz);
+  border-color: var(--a-oranz);
+  color: #fff;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 0.5rem;
+  box-shadow: 0 0.35rem 0.9rem rgba(226, 97, 26, 0.3);
+}
+
+.dlazdica--menu .dlazdica__znak {
+  font-family: var(--a-nadpis);
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+}
+
+.dlazdica--menu .dlazdica__popis {
+  color: rgba(255, 255, 255, 0.85);
+  text-align: center;
+  padding-top: 0.25rem;
+}
+
+/* Nahrávanie je posledná dlaždica v tej istej mriežke, nie vlastná sekcia. */
+.dlazdica--nahrat {
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.75rem 0.5rem;
+  background: transparent;
+  border-style: dashed;
+  border-color: rgba(23, 19, 15, 0.25);
+  color: var(--a-ink-3);
+}
+
+.dlazdica--nahrat .dlazdica__znak {
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.dlazdica--nahrat .dlazdica__popis {
+  text-align: center;
+  padding: 0;
+}
+
+/* Slidy pre inú orientáciu ostávajú v tej istej mriežke — len stlmené
+   a so štítkom. Klikateľné zostávajú, klient to občas chce. */
+.dlazdica--inak {
+  opacity: 0.45;
+}
+
+.dlazdica--inak:hover,
+.dlazdica--inak:focus-within {
+  opacity: 1;
+}
+
+.dlazdica__stitok {
+  position: absolute;
+  top: 0.3rem;
+  left: 0.3rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--a-papier);
+  background: rgba(23, 19, 15, 0.8);
+  border-radius: 0.3rem;
+  pointer-events: none;
+}
+
+/* × na zmazanie média zo Supabase — malé, v rohu dlaždice */
+.dlazdica__zmaz {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: var(--a-papier);
+  background: rgba(23, 19, 15, 0.7);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 140ms ease, transform 120ms ease;
+}
+
+.dlazdica__zmaz:hover {
+  background: var(--a-zla);
+}
+
+.dlazdica__zmaz:active {
+  transform: scale(0.9);
+}
+
+/* ------------------------------------------------------------- sled --- */
+
+.sled {
+  list-style: none;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  position: relative;
+}
+
+.sled__riadok {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.6rem 0.5rem 0.25rem;
+  background: var(--a-papier-2);
+  border: 1px solid var(--a-linka);
+  border-radius: var(--a-r-2);
+  transition: transform 180ms cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 180ms ease;
+  touch-action: auto;
+}
+
+/* Ťahaný riadok sa nadvihne a už sa neanimuje — ide presne za prstom. */
+.sled__riadok--tahany {
+  position: relative;
+  z-index: 3;
+  transition: none;
+  box-shadow: 0 0.9rem 1.8rem rgba(0, 0, 0, 0.28);
+  border-color: var(--a-oranz);
+  background: var(--a-papier);
+}
+
+.sled__uchyt {
+  flex: none;
+  width: 2rem;
+  min-height: var(--a-dotyk);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--a-ink-3);
+  background: transparent;
+  border: none;
+  border-radius: 0.4rem;
+  cursor: grab;
+  /* bez tohto by sa pri ťahaní na mobile rolovala stránka */
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.sled__uchyt:active {
+  cursor: grabbing;
+  color: var(--a-oranz);
+}
+
+.sled__telo {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.media__polozka {
+.sled__hlava {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sled__poradie {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--a-mono);
+  font-size: 0.75rem;
+  color: var(--a-papier);
+  background: var(--a-ink);
+  border-radius: 999px;
+}
+
+.sled__nazov {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sled__ovladanie {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+/* číslo + jednotka držia spolu, nech sa „30" a „s" nerozídu na dva riadky */
+.sled__cislo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: none;
+}
+
+.sled .sled__cislo input {
+  width: 4.25rem;
+  text-align: center;
+  background: var(--a-papier);
+}
+
+.sled__jednotka {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--a-ink-3);
+}
+
+.sled__prechod {
+  flex: 1 1 8rem;
+  min-width: 7rem;
+  min-height: var(--a-dotyk);
+  padding: 0.4rem 0.6rem;
+  font-family: var(--a-text);
+  font-size: 0.88rem;
+  color: var(--a-ink-2);
+  background: var(--a-papier);
+  border: 1px solid var(--a-linka);
+  border-radius: var(--a-r-2);
+  cursor: pointer;
+}
+
+/* Šípky sú druhá cesta k preskladaniu — na dlhom zozname je ťahanie otrava. */
+.sled__sipky {
+  display: inline-flex;
+  flex: none;
+  border: 1px solid var(--a-linka);
+  border-radius: var(--a-r-2);
+  overflow: hidden;
+  background: var(--a-papier);
+}
+
+.sled__sipka {
+  width: 2.4rem;
+  min-height: var(--a-dotyk);
+  padding: 0;
+  font-size: 0.95rem;
+  color: var(--a-ink-2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 140ms ease, opacity 140ms ease;
+}
+
+.sled__sipka + .sled__sipka {
+  border-left: 1px solid var(--a-linka);
+}
+
+.sled__sipka:hover {
+  background: var(--a-papier-2);
+}
+
+.sled__sipka[disabled] {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.sled__x {
+  flex: none;
+  width: var(--a-dotyk);
+  min-height: var(--a-dotyk);
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--a-ink-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--a-r-2);
+  cursor: pointer;
+  transition: color 140ms ease, background-color 140ms ease,
+    transform 120ms ease;
+}
+
+.sled__x:hover {
+  color: #fff;
+  background: var(--a-zla);
+}
+
+.sled__x:active {
+  transform: scale(0.9);
+}
+
+/* ------------------------------------------------------ lepiaca lišta --- */
+
+/* Uloženie musí byť vidieť vždy. Klient si raz nevšimol, že jeho zmeny nie sú
+   uložené, a hľadali sme hodinu, prečo mu video nejde. */
+.lista {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
-  padding: 0.5rem;
-  background: #f4f2ec;
-  border-radius: 0.35rem;
+  margin: 1.25rem 0 0;
+  padding: 0.7rem 0.8rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
+  background: var(--a-cierna-2);
+  border: 1px solid rgba(250, 247, 240, 0.14);
+  border-radius: var(--a-r);
+  box-shadow: 0 -0.6rem 1.75rem rgba(0, 0, 0, 0.55);
 }
 
-.media__nahlad {
-  width: 4.5rem;
-  height: 3rem;
-  object-fit: contain;
-  flex: none;
-  background: #fff;
-  border: 1px solid rgba(20, 17, 15, 0.15);
-  border-radius: 0.25rem;
+.lista__stav {
+  flex: 1 1 8rem;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--a-ink-3);
 }
 
-/* Video náhľad nekreslíme — televízor by si aj v adminovi stiahol celý
-   súbor. Stačí ikona, že ide o video. */
-.media__nahlad--video {
+.lista__stav--neulozene {
+  color: var(--a-oranz);
+}
+
+.lista__stav--ulozene {
+  color: var(--a-zelena);
+}
+
+.lista__stav small {
+  display: block;
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--a-ink-3);
+}
+
+/* --------------------------------------------------- prihlásenie ------ */
+
+.prihlasenie {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
-  color: #6b6459;
+  min-height: 100vh;
+  padding: 2rem 0;
 }
 
-.media__nazov {
-  flex: 1 1 10rem;
-  font-family: ui-monospace, Menlo, Consolas, monospace;
-  font-size: 0.85rem;
-  word-break: break-all;
+.prihlasenie .karta {
+  padding: 1.6rem 1.4rem;
+}
+
+.prihlasenie h1 {
+  font-size: 1.7rem;
+  margin-bottom: 0.25rem;
+}
+
+.prihlasenie__znacka {
+  display: block;
+  text-align: center;
+  margin-bottom: 1.25rem;
+  font-family: var(--a-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--a-ink-3);
+}
+
+.prihlasenie .pole input {
+  min-height: 3.25rem;
+  font-size: 1.05rem;
+}
+
+.prihlasenie .tl {
+  min-height: 3.25rem;
+  font-size: 1.05rem;
+  margin-top: 0.4rem;
+}
+
+/* ------------------------------------------------------ menej pohybu --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .admin *,
+  .admin *::before,
+  .admin *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

@@ -29,22 +29,41 @@ export default function LoginPage() {
   }
 
   return (
-    <form className="karta karta--uzka" onSubmit={odosli}>
-      <h1>Prihlásenie</h1>
-      <label>
-        Meno
-        <input value={user} onChange={(e) => setUser(e.target.value)} autoFocus />
-      </label>
-      <label>
-        Heslo
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </label>
-      {chyba && <p className="chyba">{chyba}</p>}
-      <button disabled={caka}>{caka ? "Overujem…" : "Prihlásiť"}</button>
-    </form>
+    <div className="prihlasenie">
+      <span className="prihlasenie__znacka">Ramen Brno</span>
+      <form className="karta karta--uzka" onSubmit={odosli}>
+        <h1>Prihlásenie</h1>
+        <p className="ticho" style={{ marginBottom: "1.4rem" }}>
+          Správa obrazoviek v prevádzke.
+        </p>
+
+        <label className="pole">
+          <span className="pole__popis">Meno</span>
+          <input
+            type="text"
+            value={user}
+            onChange={(e) => setUser(e.target.value)}
+            autoFocus
+            autoCapitalize="none"
+            autoCorrect="off"
+          />
+        </label>
+
+        <label className="pole">
+          <span className="pole__popis">Heslo</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
+
+        {chyba && <p className="chyba">{chyba}</p>}
+
+        <button className="tl tl--hlavne tl--siroke" disabled={caka}>
+          {caka ? "Overujem…" : "Prihlásiť"}
+        </button>
+      </form>
+    </div>
   );
 }
