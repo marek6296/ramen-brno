@@ -14,9 +14,9 @@ tsconfig.tsbuildinfo
 .DS_Store
 *.log
 
-# lokálne env (zatiaľ žiadne netreba — API je verejné, bez tokenu)
+# lokálne env (prihlasovacie údaje do adminu)
 .env
 .env*.local
 
+# lokálne úložisko obrazoviek počas vývoja
 .data
-.env*.local
