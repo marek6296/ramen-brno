@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import Hlava from "./hlava";
 import { najdiJedla } from "@/lib/slides/jedla";
 import type { MenuData } from "@/lib/menu";
 import type { FieldsNovinka, Slide } from "@/lib/slides/types";
@@ -27,10 +28,14 @@ export default function Novinka({
   return (
     <div className="slide__telo slide__telo--novinka">
       {(f.stitok || f.stitokEn) && (
-        <div style={dalsie()}>
-          {f.stitok && <span className="slide__stitok">{f.stitok}</span>}
-          {f.stitokEn && <div className="slide__stitok-en">{f.stitokEn}</div>}
-        </div>
+        <Hlava
+          text={f.stitok}
+          textEn={f.stitokEn}
+          trieda="slide__stitok"
+          triedaEn="slide__stitok-en"
+          rozdelit={false}
+          style={dalsie()}
+        />
       )}
 
       {jedla.length > 0 && (

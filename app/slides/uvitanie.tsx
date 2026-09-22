@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import Nadpis from "./nadpis";
+import Hlava from "./hlava";
 import type { MenuData } from "@/lib/menu";
 import type { FieldsUvitanie, Slide } from "@/lib/slides/types";
 
@@ -25,13 +25,13 @@ export default function Uvitanie({
   return (
     <div className="slide__telo">
       {f.nazov && (
-        <div style={dalsie()}>
-          <Nadpis
-            text={f.nazov}
-            trieda="slide__nadpis"
-            rozdelit={slide.animation === "vlna"}
-          />
-        </div>
+        <Hlava
+          text={f.nazov}
+          trieda="slide__nadpis"
+          triedaEn="slide__nadpis-en"
+          rozdelit={slide.animation === "vlna"}
+          style={dalsie()}
+        />
       )}
       {f.kana && (
         <div className="slide__kana" style={dalsie()}>
@@ -47,9 +47,10 @@ export default function Uvitanie({
       {hodiny && (
         <div style={dalsie()}>
           <div className="slide__linka" />
-          <div className="slide__nadpis" style={{ fontSize: "7cqh", marginTop: "2cqh" }}>
-            {hodiny}
-          </div>
+          {/* Zámerne vlastná trieda, nie `slide__nadpis`: inak by animácie
+              nadpisu rozhýbali aj otváraciu dobu a na slide by sa hýbali
+              dva „nadpisy" naraz. */}
+          <div className="slide__hodiny">{hodiny}</div>
         </div>
       )}
     </div>

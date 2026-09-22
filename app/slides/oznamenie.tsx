@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import Nadpis from "./nadpis";
+import Hlava from "./hlava";
 import type { FieldsOznamenie, Slide } from "@/lib/slides/types";
 
 /**
@@ -14,14 +14,14 @@ export default function Oznamenie({ slide }: { slide: Slide }) {
   return (
     <div className="slide__telo">
       {f.text && (
-        <div style={dalsie()}>
-          <Nadpis
-            text={f.text}
-            trieda="slide__odkaz"
-            rozdelit={slide.animation === "vlna"}
-          />
-          {f.textEn && <div className="slide__odkaz-en">{f.textEn}</div>}
-        </div>
+        <Hlava
+          text={f.text}
+          textEn={f.textEn}
+          trieda="slide__odkaz"
+          triedaEn="slide__odkaz-en"
+          rozdelit={slide.animation === "vlna"}
+          style={dalsie()}
+        />
       )}
       {f.podtext && (
         <div style={dalsie()}>

@@ -34,6 +34,29 @@
   gap: 3cqh;
 }
 
+/* Blok nadpisu: hlavný riadok a pod ním anglický preklad. Animácie nadpisu
+   chytajú tento prvok, nie jednotlivé riadky — inak by pulzoval len český
+   a linka podčiarknutia by sa kreslila cez anglický.
+
+   `align-self` je tu kľúčové: bez neho je blok ako položka flexu široký
+   cez celú plochu a podčiarknutie by trčalo ďaleko za text. Takto sa
+   zmrští presne na šírku nadpisu. */
+.slide__hlava {
+  align-self: flex-start;
+  position: relative;
+}
+.slide--portrait .slide__hlava { align-self: center; }
+
+/* Otváracia doba v Uvítaní. Kedysi používala triedu nadpisu a animácie
+   nadpisu ju preto rozhýbali tiež — na slide sa hýbali dva „nadpisy". */
+.slide__hodiny {
+  font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 7cqh;
+  line-height: 1.05;
+  margin-top: 2cqh;
+}
+
 .slide__nadpis {
   font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
   font-weight: 700;
@@ -159,7 +182,30 @@
 
 .slide--portrait .slide__telo { text-align: center; gap: 4cqh; }
 .slide--portrait .slide__jedlo { flex-direction: column; align-items: center; gap: 1cqh; }
-.slide--portrait .slide__nadpis { font-size: 8cqh; }
+.slide--portrait /* Blok nadpisu: hlavný riadok a pod ním anglický preklad. Animácie nadpisu
+   chytajú tento prvok, nie jednotlivé riadky — inak by pulzoval len český
+   a linka podčiarknutia by sa kreslila cez anglický.
+
+   `align-self` je tu kľúčové: bez neho je blok ako položka flexu široký
+   cez celú plochu a podčiarknutie by trčalo ďaleko za text. Takto sa
+   zmrští presne na šírku nadpisu. */
+.slide__hlava {
+  align-self: flex-start;
+  position: relative;
+}
+.slide--portrait .slide__hlava { align-self: center; }
+
+/* Otváracia doba v Uvítaní. Kedysi používala triedu nadpisu a animácie
+   nadpisu ju preto rozhýbali tiež — na slide sa hýbali dva „nadpisy". */
+.slide__hodiny {
+  font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 7cqh;
+  line-height: 1.05;
+  margin-top: 2cqh;
+}
+
+.slide__nadpis { font-size: 8cqh; }
 .slide--portrait .slide__jedlo-nazov { font-size: 5cqh; }
 .slide--portrait .slide__cena { font-size: 5.5cqh; }
 .slide--portrait .slide__odkaz { font-size: 6cqh; }
@@ -224,17 +270,12 @@
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.055); }
 }
-.slide--anim-pulz .slide__nadpis,
-.slide--anim-pulz .slide__odkaz,
-.slide--anim-pulz .slide__stitok {
-  display: inline-block;
-  transform-origin: center;
+.slide--anim-pulz .slide__hlava {
+  transform-origin: left center;
   animation: slide-pulz 2.4s ease-in-out infinite;
 }
-/* Na výšku je obsah na stred, na šírku vľavo — inline-block by nadpis inak
-   odtrhol od ľavého okraja. */
-.slide--landscape.slide--anim-pulz .slide__nadpis,
-.slide--landscape.slide--anim-pulz .slide__odkaz { transform-origin: left center; }
+/* Na výšku je obsah na stred, tak sa aj zväčšuje od stredu. */
+.slide--portrait.slide--anim-pulz .slide__hlava { transform-origin: center; }
 
 /* Vlna: písmená sa dvíhajú jedno po druhom. Delenie na písmená robí
    komponent `Nadpis` a poradie nesie `--z`. */
@@ -255,8 +296,7 @@
   from { background-position: -140% 0; }
   to { background-position: 240% 0; }
 }
-.slide--anim-lesk .slide__nadpis,
-.slide--anim-lesk .slide__odkaz {
+.slide--anim-lesk .slide__hlava {
   background-image: linear-gradient(
     100deg,
     currentColor 42%,
@@ -274,8 +314,7 @@
    ostal by nadpis priehľadný, teda neviditeľný. Radšej bez efektu než
    prázdna stena. */
 @supports not ((background-clip: text) or (-webkit-background-clip: text)) {
-  .slide--anim-lesk .slide__nadpis,
-  .slide--anim-lesk .slide__odkaz {
+  .slide--anim-lesk .slide__hlava {
     background-image: none;
     color: inherit;
     animation: none;
@@ -288,13 +327,7 @@
   55% { transform: scaleX(1); opacity: 1; }
   85%, 100% { transform: scaleX(1); opacity: 0; }
 }
-.slide--anim-podciarknutie .slide__nadpis,
-.slide--anim-podciarknutie .slide__odkaz {
-  position: relative;
-  display: inline-block;
-}
-.slide--anim-podciarknutie .slide__nadpis::after,
-.slide--anim-podciarknutie .slide__odkaz::after {
+.slide--anim-podciarknutie .slide__hlava::after {
   content: "";
   position: absolute;
   left: 0;
@@ -315,8 +348,7 @@
   50% { opacity: 0.5; }
 }
 .slide--anim-zvyraznenie .slide__cena,
-.slide--anim-zvyraznenie .slide__stitok,
-.slide--anim-zvyraznenie .slide__kana {
+.slide--anim-zvyraznenie .slide__stitok {
   animation: slide-zvyraznenie 2.8s ease-in-out infinite;
 }
 /* Preškrtnutá pôvodná cena nepulzuje — nie je to ona, na čo má hosť pozerať. */
@@ -343,6 +375,8 @@
   .slide__odkaz,
   .slide__odkaz::after,
   .slide__pismeno,
+  .slide__hlava,
+  .slide__hlava::after,
   .slide__cena,
   .slide__stitok,
   .slide__kana { animation: none !important; }

@@ -114,3 +114,44 @@ describe("ponuka animácií podľa šablóny", () => {
     expect(pulz("oznamenie")).toBe(false);
   });
 });
+
+/**
+ * Nadpis a jeho anglický preklad sú dva samostatné riadky. Keď animácia
+ * mieri priamo na nadpis, pulzuje len český text a anglický stojí; linka
+ * podčiarknutia sa navyše nakreslí medzi ne, teda cez angličtinu. Presne
+ * to sa stalo a preto vznikol spoločný blok `.slide__hlava`.
+ */
+describe("animácie nadpisu chytajú aj anglický riadok", () => {
+  const pravidla = cssSlidov.split("}");
+  const animacneRiadky = pravidla.filter(
+    (r) => r.includes(".slide--anim-") && r.includes("animation"),
+  );
+
+  it("žiadna animácia nemieri priamo na jednotlivý riadok nadpisu", () => {
+    const zleMierene = animacneRiadky.filter((r) =>
+      [".slide__nadpis", ".slide__odkaz"].some(
+        (t) => r.includes(`${t} `) || r.includes(`${t},`) || r.includes(`${t}::`),
+      ),
+    );
+    expect(zleMierene).toEqual([]);
+  });
+
+  it("podčiarknutie sa kreslí pod celým blokom, nie pod jedným riadkom", () => {
+    const podciarknutie = pravidla.find(
+      (r) => r.includes(".slide--anim-podciarknutie") && r.includes("::after"),
+    );
+    expect(podciarknutie).toBeDefined();
+    expect(podciarknutie).toContain(".slide__hlava::after");
+  });
+
+  it("otváracia doba nepoužíva triedu nadpisu", () => {
+    // Inak by ju animácie nadpisu rozhýbali tiež a na Uvítaní by sa hýbali
+    // dva „nadpisy" naraz.
+    const uvitanie = readFileSync(
+      path.join(process.cwd(), "app/slides/uvitanie.tsx"),
+      "utf8",
+    );
+    expect(uvitanie).toContain("slide__hodiny");
+    expect(uvitanie.match(/slide__nadpis"/g) ?? []).toHaveLength(1);
+  });
+});
