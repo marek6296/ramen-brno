@@ -13,6 +13,7 @@ import type {
   Screen,
   Transition,
 } from "@/lib/storage/types";
+import type { Slide } from "@/lib/slides/types";
 
 /** popisky prechodov pre obsluhu — poradie je aj poradím v ponuke */
 const PRECHODY: { hodnota: Transition; popis: string; posuva: boolean }[] = [
@@ -88,11 +89,13 @@ export function citatelnyNazov(nazov?: string): string | undefined {
 export default function Editor({
   screen,
   slides,
+  slidy,
   media,
   mediaDostupne,
 }: {
   screen: Screen;
   slides: DemoSlide[];
+  slidy: Slide[];
   media: MediaFile[];
   mediaDostupne: boolean;
 }) {
@@ -132,10 +135,25 @@ export default function Editor({
     ]);
   }
 
-  function pridajSlide(path: string) {
+  function pridajUkazkovySlide(path: string) {
     setItems((z) => [
       ...z,
       { id: novyId(), kind: "image", mediaPath: path, durationS: 10, transition: "fade", repeats: 1, slideId: "" },
+    ]);
+  }
+
+  function pridajVlastnySlide(s: Slide) {
+    setItems((z) => [
+      ...z,
+      {
+        id: novyId(),
+        kind: "slide",
+        mediaPath: "",
+        slideId: s.id,
+        durationS: 10,
+        transition: "fade",
+        repeats: 1,
+      },
     ]);
   }
 
@@ -358,9 +376,11 @@ export default function Editor({
   const nazov = (i: PlaylistItem) =>
     i.kind === "menu"
       ? "Menu (živé z ChoiceQR)"
-      : (slides.find((s) => s.path === i.mediaPath)?.label ??
-        citatelnyNazov(mediaZoznam.find((m) => m.url === i.mediaPath)?.name) ??
-        i.mediaPath);
+      : i.kind === "slide"
+        ? (slidy.find((s) => s.id === i.slideId)?.name ?? "Zmazaný slide")
+        : (slides.find((s) => s.path === i.mediaPath)?.label ??
+          citatelnyNazov(mediaZoznam.find((m) => m.url === i.mediaPath)?.name) ??
+          i.mediaPath);
 
   return (
     <>
@@ -578,6 +598,18 @@ export default function Editor({
             <span className="dlazdica__popis">živé z ChoiceQR</span>
           </button>
 
+          {slidy.map((s) => (
+            <button
+              key={s.id}
+              className="dlazdica dlazdica--slide"
+              onClick={() => pridajVlastnySlide(s)}
+              title={s.name}
+            >
+              <span className="dlazdica__stitok">SLIDE</span>
+              <span className="dlazdica__nazov">{s.name}</span>
+            </button>
+          ))}
+
           {slides.map((s) => {
             const sedi = s.orientation === orientation;
             return (
@@ -585,7 +617,7 @@ export default function Editor({
                 type="button"
                 key={s.path}
                 className={sedi ? "dlazdica" : "dlazdica dlazdica--inak"}
-                onClick={() => pridajSlide(s.path)}
+                onClick={() => pridajUkazkovySlide(s.path)}
                 title={
                   sedi
                     ? s.label

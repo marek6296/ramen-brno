@@ -1137,3 +1137,16 @@ body:has(.admin) {
   gap: 0.6rem;
 }
 .pole--zaskrtavacie input { width: auto; min-height: 0; }
+
+/* Dlaždica vlastného slidu v mriežke zdrojov. Odlíšená od ukážkových
+   obrázkov, lebo slide je živý — mení sa, keď ho klient upraví. */
+.dlazdica--slide {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+  background: var(--a-cierna-2);
+  color: var(--a-papier);
+  border-color: var(--a-oranz);
+}
+.dlazdica__nazov { font-weight: 600; }

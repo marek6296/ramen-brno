@@ -3,6 +3,7 @@ import { getStore } from "@/lib/storage";
 import { isLoggedIn } from "@/lib/session";
 import { DEMO_SLIDES } from "@/lib/demo-slides";
 import { listMedia, mediaJeDostupne } from "@/lib/media";
+import { getSlideStore } from "@/lib/slides";
 import Editor from "./editor";
 
 export const dynamic = "force-dynamic";
@@ -22,11 +23,13 @@ export default async function ScreenPage({
   // editor; obrazovka sa dá upravovať aj bez zoznamu médií.
   const dostupne = mediaJeDostupne();
   const media = dostupne ? await listMedia().catch(() => []) : [];
+  const slidyZoznam = await getSlideStore().listSlides();
 
   return (
     <Editor
       screen={screen}
       slides={DEMO_SLIDES}
+      slidy={slidyZoznam}
       media={media}
       mediaDostupne={dostupne}
     />
