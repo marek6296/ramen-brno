@@ -1,6 +1,10 @@
 /* Produkčné globals.css zamyká stránku na celú obrazovku bez rolovania —
    pre TV správne, pre admin nie. Odomykáme to len tam, kde je admin obal,
    aby sa produkčný súbor nemusel meniť. */
+/* `globals.css` zamyká stránku na výšku okna bez rolovania — na televízore
+   správne, v adminovi nie. Odomknúť treba OBA prvky: `overflow: hidden` na
+   `html` odreže obsah aj vtedy, keď `body` rolovať smie. */
+html:has(.admin),
 body:has(.admin) {
   height: auto;
   /* bez min-height by pod obsahom presvital tmavý podklad z globals.css */
