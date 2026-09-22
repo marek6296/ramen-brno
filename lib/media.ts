@@ -75,7 +75,7 @@ function druh(nazov: string): MediaFile["kind"] {
  * príde názov z prehliadača, takže sa overuje — bez toho by sa dalo poslať
  * `../` a siahnuť mimo bucketu.
  */
-function jeBezpecnyNazov(nazov: string): boolean {
+export function jeBezpecnyNazov(nazov: string): boolean {
   return /^[a-z0-9][a-z0-9.\-]{0,119}$/.test(nazov) && !nazov.includes("..");
 }
 
