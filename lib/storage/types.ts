@@ -9,35 +9,42 @@ export type Transition =
   | "fade"
   | "fade-slow"
   | "fade-fast"
-  | "slide"
-  | "slide-left"
-  | "slide-up"
-  | "slide-down"
+  | "push-left"
+  | "push-right"
+  | "push-up"
+  | "push-down"
+  | "cover-left"
+  | "cover-up"
+  | "reveal-left"
   | "zoom"
   | "zoom-in"
   | "none";
 
 /**
- * Jediný zoznam prechodov — ponuka v adminovi aj validácia v oboch
- * úložiskách čítajú odtiaľto. Bol rozpísaný na troch miestach a nový
- * prechod by sa musel doplniť do každého; ktorý by sa zabudol, ten by
- * úložisko ticho prepísalo na „prelínanie".
+ * Jediný zoznam prechodov — ponuka v adminovi aj validácia v úložiskách
+ * a v API čítajú odtiaľto. Bol rozpísaný na štyroch miestach a ten, na ktorý
+ * sa zabudlo, ticho prepisoval nové prechody na „prelínanie“.
  *
- * `posuva` znamená, že prechod hýbe obsahom cez `transform`. Menu si po
- * zobrazení meria vlastné rozmery, aby sa rozhodlo, či zhustiť sadzbu,
- * a transform mu tie rozmery skreslí — preto sa pri menu neponúka.
+ * `skresluje` znamená, že prechod mení ROZMER obsahu. Menu si po zobrazení
+ * meria vlastnú výšku, aby sa rozhodlo, či zhustiť sadzbu — a zväčšenie mu
+ * tú výšku skreslí. Posun ju nemení (overené: translate nechá
+ * `getBoundingClientRect().height` na mieste, scale ju roztiahne), takže
+ * vytláčanie aj nasúvanie sa pri menu pokojne použiť dá.
  */
-export const PRECHODY: { hodnota: Transition; popis: string; posuva: boolean }[] = [
-  { hodnota: "fade", popis: "Prelínanie", posuva: false },
-  { hodnota: "fade-slow", popis: "Pomalé prelínanie", posuva: false },
-  { hodnota: "fade-fast", popis: "Rýchle prelínanie", posuva: false },
-  { hodnota: "slide", popis: "Posun sprava", posuva: true },
-  { hodnota: "slide-left", popis: "Posun zľava", posuva: true },
-  { hodnota: "slide-up", popis: "Posun zdola", posuva: true },
-  { hodnota: "slide-down", popis: "Posun zhora", posuva: true },
-  { hodnota: "zoom", popis: "Oddialenie", posuva: true },
-  { hodnota: "zoom-in", popis: "Priblíženie", posuva: true },
-  { hodnota: "none", popis: "Bez prechodu", posuva: false },
+export const PRECHODY: { hodnota: Transition; popis: string; skresluje: boolean }[] = [
+  { hodnota: "fade", popis: "Prelínanie", skresluje: false },
+  { hodnota: "fade-slow", popis: "Pomalé prelínanie", skresluje: false },
+  { hodnota: "fade-fast", popis: "Rýchle prelínanie", skresluje: false },
+  { hodnota: "push-left", popis: "Vytlačenie doľava", skresluje: false },
+  { hodnota: "push-right", popis: "Vytlačenie doprava", skresluje: false },
+  { hodnota: "push-up", popis: "Vytlačenie nahor", skresluje: false },
+  { hodnota: "push-down", popis: "Vytlačenie nadol", skresluje: false },
+  { hodnota: "cover-left", popis: "Nasunutie sprava", skresluje: false },
+  { hodnota: "cover-up", popis: "Nasunutie zdola", skresluje: false },
+  { hodnota: "reveal-left", popis: "Odkrytie doľava", skresluje: false },
+  { hodnota: "zoom", popis: "Oddialenie", skresluje: true },
+  { hodnota: "zoom-in", popis: "Priblíženie", skresluje: true },
+  { hodnota: "none", popis: "Bez prechodu", skresluje: false },
 ];
 
 export const PRECHODY_HODNOTY: Transition[] = PRECHODY.map((p) => p.hodnota);

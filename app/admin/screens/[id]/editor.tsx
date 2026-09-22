@@ -16,12 +16,11 @@ import type {
 import type { Slide } from "@/lib/slides/types";
 
 /**
- * Prechody, ktoré hýbu obsahom, prehrávač pri menu ignoruje — skreslili by
- * mu meranie sadzby. Radšej ich teda vôbec neponúkame, než aby klient vyberal
- * niečo, čo sa potom potichu nepoužije.
+ * Pri menu vynechávame len prechody, ktoré menia rozmer obsahu — skreslili
+ * by mu meranie sadzby. Posun a vytláčanie rozmer nemenia, tie tam patria.
  */
 const prechodyPre = (kind: PlaylistItem["kind"]) =>
-  kind === "menu" ? PRECHODY.filter((p) => !p.posuva) : PRECHODY;
+  kind === "menu" ? PRECHODY.filter((p) => !p.skresluje) : PRECHODY;
 
 /** veľkosť v MB na jedno desatinné miesto — bajty obsluhe nič nepovedia */
 const vMB = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`;

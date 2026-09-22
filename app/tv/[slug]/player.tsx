@@ -10,6 +10,13 @@ import type { PlaylistItem, Screen } from "@/lib/storage/types";
 import type { Slide } from "@/lib/slides/types";
 import "./player.css";
 
+/**
+ * Ako dlho po prepnutí ešte držíme odchádzajúcu položku v obraze. Musí byť
+ * dlhšie než najdlhšia animácia prechodu v `player.css` — keby bolo kratšie,
+ * odchádzajúca by zmizla uprostred pohybu a preskočilo by to.
+ */
+const TRVANIE_PRECHODU = 900;
+
 /** ako často sa TV pýta, či klient niečo nezmenil */
 const DOPYT_MS = 15_000;
 
@@ -24,8 +31,12 @@ export default function Player({
   const [slides, setSlides] = useState(initialSlides);
   const [menu, setMenu] = useState<MenuData | null>(null);
   const [index, setIndex] = useState(0);
+  /** položka, ktorá práve odchádza z obrazu; null, keď sa nič neprepína */
+  const [odchadzajuci, setOdchadzajuci] = useState<number | null>(null);
   const [bezKurzora, setBezKurzora] = useState(false);
   const casovac = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** index, ktorý bol zobrazený naposledy — podľa neho vieme, čo odchádza */
+  const predosly = useRef(0);
   /** prvky <video> podľa id položky — cez ne sa púšťa a zastavuje prehrávanie */
   const videa = useRef(new Map<string, HTMLVideoElement>());
   /** koľkokrát už práve zobrazené video dohralo od začiatku svojho kola */
@@ -244,6 +255,22 @@ export default function Player({
     }
   }
 
+  /** prechod, podľa ktorého sa práve prepína — určuje ho prichádzajúca položka */
+  const prechodTeraz = items[index]?.transition ?? "fade";
+
+  /* Prechody ako „vytlačenie" musia hýbať oboma položkami naraz. Odchádzajúca
+     preto ešte chvíľu zostáva v obraze s vlastnou triedou — bez toho by
+     zmizla skôr, než by ju nová stihla vytlačiť, a z celého prechodu by
+     ostalo obyčajné preblikntie. */
+  useEffect(() => {
+    if (predosly.current === index) return;
+    const odisiel = predosly.current;
+    predosly.current = index;
+    setOdchadzajuci(odisiel);
+    const t = setTimeout(() => setOdchadzajuci(null), TRVANIE_PRECHODU);
+    return () => clearTimeout(t);
+  }, [index]);
+
   return (
     /* Televízor zavesený na výšku aj tak posiela obraz na šírku, takže o 90°
        musí otočiť samotná stránka. Rámec dostane vymenené rozmery a preklopí
@@ -260,13 +287,21 @@ export default function Player({
           </p>
         )}
 
-        {items.map((it, i) => (
+        {items.map((it, i) => {
+          const vidno = i === index;
+          const odchadza = i === odchadzajuci;
+          /* Prechod určuje PRICHÁDZAJÚCA položka — a platí aj pre odchádzajúcu.
+             Inak by sa pri vytláčaní každá hýbala podľa svojho a rozišli by sa. */
+          const prechod = vidno || odchadza ? prechodTeraz : it.transition;
+          return (
           <div
-            className={`polozka polozka--prechod-${it.transition}${
+            className={`polozka polozka--prechod-${prechod}${
               it.kind === "menu" ? " polozka--menu" : ""
-            }${i === index ? " polozka--vidno" : ""}`}
+            }${vidno ? " polozka--vidno" : ""}${
+              odchadza ? " polozka--odchadza" : ""
+            }`}
             key={it.id}
-            aria-hidden={i !== index}
+            aria-hidden={!vidno}
           >
             {it.kind === "menu" ? (
               menu ? (
@@ -335,7 +370,8 @@ export default function Player({
               <img src={it.mediaPath} alt="" />
             )}
           </div>
-        ))}
+          );
+        })}
 
         <button className="celu-obrazovku" onClick={celuObrazovku}>
           Celá obrazovka

@@ -39,6 +39,6 @@ describe("prechody medzi položkami", () => {
   it("menu má na výber aspoň dva prechody, ktoré ním nehýbu", () => {
     // Transform skresľuje meraniu sadzby rozmery, preto sa pri menu neponúka.
     // Keby ich nezostalo, klient by pri menu nemal z čoho vyberať.
-    expect(PRECHODY.filter((p) => !p.posuva).length).toBeGreaterThanOrEqual(2);
+    expect(PRECHODY.filter((p) => !p.skresluje).length).toBeGreaterThanOrEqual(2);
   });
 });

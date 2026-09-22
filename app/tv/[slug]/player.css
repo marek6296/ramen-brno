@@ -58,38 +58,6 @@
 .polozka--prechod-fade-slow { transition: opacity 1400ms ease; }
 .polozka--prechod-fade-fast { transition: opacity 250ms ease; }
 
-.polozka--prechod-slide {
-  transition:
-    opacity 600ms ease,
-    transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
-  transform: translateX(4%);
-}
-.polozka--prechod-slide.polozka--vidno { transform: translateX(0); }
-
-.polozka--prechod-slide-left {
-  transition:
-    opacity 600ms ease,
-    transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
-  transform: translateX(-4%);
-}
-.polozka--prechod-slide-left.polozka--vidno { transform: translateX(0); }
-
-.polozka--prechod-slide-up {
-  transition:
-    opacity 600ms ease,
-    transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
-  transform: translateY(4%);
-}
-.polozka--prechod-slide-up.polozka--vidno { transform: translateY(0); }
-
-.polozka--prechod-slide-down {
-  transition:
-    opacity 600ms ease,
-    transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
-  transform: translateY(-4%);
-}
-.polozka--prechod-slide-down.polozka--vidno { transform: translateY(0); }
-
 .polozka--prechod-zoom {
   transition:
     opacity 700ms ease,
@@ -111,11 +79,105 @@
 
 .polozka--prechod-none { transition: none; }
 
-/* DÔLEŽITÉ: menu si po zobrazení meria vlastné rozmery, aby sa rozhodlo,
-   či zhustiť sadzbu. `transform` na rodičovi mu tie rozmery skreslí — pri
-   skrytej položke by meralo o 3 % vedľa a zbytočne by zhustilo. Preto pri
-   menu necháme len priehľadnosť. */
-.polozka--menu { transform: none !important; }
+/* ---- prechody, pri ktorých sa hýbe aj odchádzajúca položka ----
+
+   Tu už nestačí `transition` na prichádzajúcej: pri vytláčaní sa musia
+   pohnúť obe naraz. Preto dvojica animácií a trieda `--odchadza`, ktorú
+   prehrávač drží po dobu prechodu. Stále len `transform` a `opacity` —
+   nič iné sa na televízore nehýbe plynulo.
+
+   Posun je celý cez šírku obrazu (100 %), nie o pár percent. O tom, čo sa
+   hýbe len o 4 %, sa nedá povedať, že sa niečo vytlačilo. */
+
+@keyframes prechod-prichod-sprava { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes prechod-prichod-zlava  { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes prechod-prichod-zdola  { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes prechod-prichod-zhora  { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+@keyframes prechod-odchod-dolava  { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes prechod-odchod-doprava { from { transform: translateX(0); } to { transform: translateX(100%); } }
+@keyframes prechod-odchod-nahor   { from { transform: translateY(0); } to { transform: translateY(-100%); } }
+@keyframes prechod-odchod-nadol   { from { transform: translateY(0); } to { transform: translateY(100%); } }
+
+/* Odchádzajúca položka musí byť pri týchto prechodoch stále vidieť —
+   základ `.polozka` ju má priehľadnú. Ide pod prichádzajúcu, okrem
+   odkrytia, kde sa odsúva práve tá vrchná. */
+.polozka--odchadza { z-index: 1; }
+.polozka--vidno { z-index: 2; }
+
+/* --- vytlačenie: obe sa hýbu rovnakým smerom, nová tlačí starú von --- */
+
+.polozka--prechod-push-left.polozka--vidno {
+  animation: prechod-prichod-sprava 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.polozka--prechod-push-left.polozka--odchadza {
+  opacity: 1;
+  animation: prechod-odchod-dolava 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.polozka--prechod-push-right.polozka--vidno {
+  animation: prechod-prichod-zlava 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.polozka--prechod-push-right.polozka--odchadza {
+  opacity: 1;
+  animation: prechod-odchod-doprava 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.polozka--prechod-push-up.polozka--vidno {
+  animation: prechod-prichod-zdola 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.polozka--prechod-push-up.polozka--odchadza {
+  opacity: 1;
+  animation: prechod-odchod-nahor 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.polozka--prechod-push-down.polozka--vidno {
+  animation: prechod-prichod-zhora 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.polozka--prechod-push-down.polozka--odchadza {
+  opacity: 1;
+  animation: prechod-odchod-nadol 620ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* --- nasunutie: stará stojí, nová sa na ňu nasunie --- */
+
+.polozka--prechod-cover-left.polozka--vidno {
+  animation: prechod-prichod-sprava 560ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+.polozka--prechod-cover-left.polozka--odchadza { opacity: 1; }
+
+.polozka--prechod-cover-up.polozka--vidno {
+  animation: prechod-prichod-zdola 560ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+.polozka--prechod-cover-up.polozka--odchadza { opacity: 1; }
+
+/* --- odkrytie: nová už čaká pod starou a tá sa odsunie preč --- */
+
+.polozka--prechod-reveal-left.polozka--vidno { opacity: 1; }
+.polozka--prechod-reveal-left.polozka--odchadza {
+  opacity: 1;
+  z-index: 3;
+  animation: prechod-odchod-dolava 560ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+
+/* Televízor visí na stene a beží celý deň — kto si nastaví pokojný obraz,
+   nech ho dostane. */
+@media (prefers-reduced-motion: reduce) {
+  .polozka { animation: none !important; }
+}
+
+/* DÔLEŽITÉ: menu si po zobrazení meria vlastnú výšku, aby sa rozhodlo, či
+   zhustiť sadzbu. ZVÄČŠENIE mu tú výšku skreslí — pri skrytej položke by
+   meralo o 3 % vedľa a zbytočne zhustilo. Posun výšku nemení (overené:
+   translate necháva `getBoundingClientRect().height` na mieste, scale ju
+   roztiahne), takže vytláčanie ani nasúvanie sa blokovať nemusí.
+   Admin zväčšenie pri menu ani neponúka; toto je poistka pre staršie
+   uložené sledy. */
+.polozka--menu.polozka--prechod-zoom,
+.polozka--menu.polozka--prechod-zoom-in {
+  transform: none !important;
+  animation: none !important;
+}
 
 .polozka--vidno {
   opacity: 1;

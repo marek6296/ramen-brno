@@ -102,11 +102,11 @@ export function skontrolujStore(
       });
       const po = await store.updateScreen(s.id, {
         items: [
-          { id: "p1", kind: "menu", mediaPath: "", durationS: 30, transition: "slide", repeats: 1, slideId: "" },
+          { id: "p1", kind: "menu", mediaPath: "", durationS: 30, transition: "push-left", repeats: 1, slideId: "" },
           { id: "p2", kind: "image", mediaPath: "/a.png", durationS: 10, transition: "zoom", repeats: 1, slideId: "" },
         ],
       });
-      expect(po.items.map((i) => i.transition)).toEqual(["slide", "zoom"]);
+      expect(po.items.map((i) => i.transition)).toEqual(["push-left", "zoom"]);
       expect((await store.getScreen(s.id))?.items).toEqual(po.items);
     });
 
