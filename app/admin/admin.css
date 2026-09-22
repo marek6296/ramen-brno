@@ -1097,6 +1097,9 @@ body:has(.admin) {
   border-radius: 0.7rem;
   border: 1px solid var(--a-linka);
   background: var(--a-cierna-2);
+  margin-top: 0.75rem;
 }
 .nahlad--landscape { aspect-ratio: 16 / 9; }
-.nahlad--portrait  { aspect-ratio: 9 / 16; }
+/* Na výšku obmedzujeme šírku — inak by náhľad zabral pol obrazovky
+   a v zozname aj v editore by sa stratil zvyšok ovládania. */
+.nahlad--portrait  { aspect-ratio: 9 / 16; max-width: 18rem; margin-inline: auto; }
