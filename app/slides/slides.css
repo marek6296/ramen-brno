@@ -84,6 +84,10 @@
 }
 
 .slide__jedlo-popis {
+  /* Popis je vnorený v názve jedla, takže by po ňom zdedil tučné zúžené
+     písmo a súperil by s ním o pozornosť. Vraciame ho na základné. */
+  font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 400;
   font-size: 3cqh;
   opacity: 0.7;
   display: -webkit-box;
