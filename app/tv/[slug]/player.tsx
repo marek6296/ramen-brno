@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Board from "@/app/board";
 import BoardPortrait from "@/app/board-portrait";
+import SlideView from "@/app/slides/slide-view";
+import { jeSlidePrazdny } from "@/lib/slides/jedla";
 import type { MenuData } from "@/lib/menu";
-import type { Screen } from "@/lib/storage/types";
+import type { PlaylistItem, Screen } from "@/lib/storage/types";
 import type { Slide } from "@/lib/slides/types";
 import "./player.css";
 
@@ -103,6 +105,27 @@ export default function Player({
 
   useEffect(() => {
     if (items.length < 2) return;
+
+    /* Slide, ktorý stojí na jedlách a ani jedno z nich už v ChoiceQR nie je,
+       nemá čo ukázať. Preskočíme ho — prázdny rámec cez celú stenu je horší
+       než o položku kratší sled. Klient mení menu často, takže toto nastane.
+
+       Preskakujeme však len vtedy, keď je kam ísť. Keby boli prázdne všetky
+       položky (napr. ChoiceQR dočasne nevracia nič), skákali by sme dokola
+       niekoľkokrát za sekundu celý deň. V takom prípade radšej ostaneme stáť
+       a počkáme, kým sa dáta vrátia — obraz je rovnako prázdny tak či tak. */
+    const prazdny = (it: PlaylistItem) =>
+      it.kind === "slide" &&
+      !!slides[it.slideId] &&
+      jeSlidePrazdny(slides[it.slideId], menu);
+
+    const jeKamIst = items.some((it) => !prazdny(it));
+
+    if (jeKamIst && prazdny(items[index])) {
+      const preskoc = setTimeout(() => setIndex((i) => (i + 1) % items.length), 50);
+      return () => clearTimeout(preskoc);
+    }
+
     /* Video sa neodmeriava sekundami — nikto nevie, koľko klip trvá, a keď sa
        netrafí, buď sa ustrihne, alebo potom stojí na poslednom snímku.
        Prepína ho efekt nižšie, keď dohrá zadaný počet ráz. */
@@ -115,7 +138,7 @@ export default function Player({
     return () => {
       if (casovac.current) clearTimeout(casovac.current);
     };
-  }, [index, items, podpis]);
+  }, [index, items, podpis, slides, menu]);
 
   /* Videá: hrá len to, ktoré je práve vidieť, ostatné stoja.
      Prvky <video> pritom ZOSTÁVAJÚ V DOM celý čas — presne ako obrázky.
@@ -298,6 +321,15 @@ export default function Player({
                 playsInline
                 preload="auto"
               />
+            ) : it.kind === "slide" ? (
+              slides[it.slideId] ? (
+                <SlideView
+                  slide={slides[it.slideId]}
+                  menu={menu}
+                  orientation={screen.orientation}
+                  currency={menu?.currency ?? "Kč"}
+                />
+              ) : null
             ) : (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img src={it.mediaPath} alt="" />
