@@ -1,0 +1,584 @@
+/* ------------------------------------------------------------------
+   RAMEN BRNO — doska NA VÝŠKU (9:16)
+   Cieľ: dve televízory otočené na výšku, 1080×1920 aj 2160×3840.
+   Všetko škáluje z výšky viewportu (vh) -> na oboch rozlíšeniach rovnaké.
+
+   POZOR: `globals.css` (doska na šírku) platí aj na tejto stránke a NESMIE sa
+   meniť — beží z neho klientovi TV v prevádzke. Preto má tu každá trieda
+   prefix `bp-`, aby sa oba súbory nikdy nestretli.
+
+   `--bp-fit` je spoločná mierka, ktorú nastavuje `board-portrait.tsx` podľa
+   nameranej výšky obsahu; `--bp-u` je z nej odvodená typografická jednotka.
+   Všetky veľkosti sa píšu cez `--bp-u`, takže zmenšenie mierky stiahne
+   rovnomerne písmo, medzery aj odsadenia — nič sa nerozsype.
+------------------------------------------------------------------- */
+
+.bp-doska {
+  --bp-ink: #14110f;
+  --bp-ink-2: #37302a;
+  --bp-ink-3: #6b6459;
+  --bp-accent: #d9741a;
+  --bp-accent-deep: #a8500c;
+  --bp-paper: #f4f2ec;
+  --bp-rule: #14110f;
+  --bp-linka: rgba(20, 17, 15, 0.22);
+
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: var(--bp-paper);
+  color: var(--bp-ink);
+  font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  /* ochrana proti vypáleniu panela: pomalý drift o ±6 px, ako na doske na šírku */
+  animation: bp-drift 240s ease-in-out infinite;
+}
+
+/* ich washi textúra — stlmená na úroveň papiera, aby text ostal čitateľný */
+.bp-doska__pozadie {
+  position: absolute;
+  inset: -2%;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.07;
+  filter: grayscale(1) brightness(1.5) contrast(0.4);
+  pointer-events: none;
+}
+
+@keyframes bp-drift {
+  0%,  100% { transform: translate(0, 0); }
+  25%       { transform: translate(6px, -5px); }
+  50%       { transform: translate(-5px, 5px); }
+  75%       { transform: translate(4px, 4px); }
+}
+
+/* jemné papierové zrno navrch pozadia */
+.bp-doska::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(20, 17, 15, 0.035) 1px, transparent 1px);
+  background-size: 3px 3px;
+  mix-blend-mode: multiply;
+}
+
+.bp-kana { font-family: "Noto Sans JP", sans-serif; }
+
+/* ---------------- hlavička ---------------- */
+
+/* Hlavička sa ZÁMERNE nezmenšuje spolu s obsahom (nepoužíva `--bp-u`):
+   logo a hodiny majú byť z diaľky rovnaké bez ohľadu na to, koľko jedál
+   klient práve zapol.
+
+   Tri stĺpce, nie absolútne vycentrovaný nápis ako na doske na šírku:
+   na výšku je hlavička o polovicu užšia a „MENU" sa cez značku prekrývalo.
+   Krajné stĺpce sú rovnako široké, takže stredný ostáva presne v strede —
+   len sa už nemá ako prekryť. */
+.bp-hlavicka {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1vh;
+  padding: 1.3vh 2.2vh 1.1vh;
+  border-bottom: 0.22vh solid var(--bp-rule);
+  position: relative;
+  z-index: 2;
+}
+
+/* Značka je na výšku POSKLADANÁ POD SEBA (na šírku je vedľa seba). Vedľa seba
+   zabrala aj s adresou vyše 180 px a na stred hlavičky už nezostalo miesto
+   na čitateľné „MENU" — adresa sa orezávala. Pod sebou je značka široká
+   ako najširší z jej riadkov a všetko sa zmestí. */
+.bp-znacka {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35vh;
+  min-width: 0;
+}
+
+/* Logo má v sebe vlastný čierny kruh (rohy priehľadné) -> ide priamo na papier.
+   Selektor je zámerne dvojtriedny: prehrávač okolo má `.polozka img
+   { width: 100%; height: 100% }` (pre celoplošné obrázky v slede) a samotné
+   `.bp-logo` by nad ním kvôli špecifickosti prehralo — logo by potom zabralo
+   celú hlavičku. */
+.bp-doska .bp-logo {
+  height: 5.4vh;
+  width: auto;
+  max-width: none;
+  object-fit: contain;
+  display: block;
+}
+
+/* kana a adresa vedľa seba na jednom riadku pod logom */
+.bp-znacka__text {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9vh;
+  min-width: 0;
+}
+
+.bp-znacka .bp-kana {
+  font-size: 1.05vh;
+  letter-spacing: 0.5em;
+  color: var(--bp-accent-deep);
+}
+
+.bp-podnadpis {
+  font-size: 0.72vh;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bp-ink-3);
+  /* V úzkom stĺpci hlavičky sa adresa lámala do dvoch riadkov. Ostáva teda
+     na jednom — a keby ju niekto predĺžil, radšej sa orežie bodkami, než
+     aby prerástla do stredného stĺpca a liezla cez „MENU". */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* MENU – stredný stĺpec hlavičky */
+.bp-nazov-menu {
+  font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 2.7vh;
+  letter-spacing: 0.24em;
+  /* letter-spacing odsadí aj vpravo -> vizuálne dorovnáme zľava */
+  text-indent: 0.24em;
+  color: var(--bp-ink);
+  display: flex;
+  align-items: baseline;
+  gap: 0.5vh;
+  white-space: nowrap;
+}
+.bp-nazov-menu .bp-kana {
+  font-size: 1vh;
+  letter-spacing: 0.3em;
+  color: var(--bp-accent-deep);
+}
+
+.bp-vpravo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-self: end;
+  gap: 0.2vh;
+  font-size: 0.85vh;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bp-ink-2);
+}
+
+.bp-hodiny {
+  font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
+  font-size: 1.9vh;
+  letter-spacing: 0.08em;
+  color: var(--bp-ink);
+}
+
+/* ---------------- telo ---------------- */
+
+/*
+   Sekcie idú pod sebou a NIKDY sa nesmú zmršťovať (`flex-shrink: 0`) —
+   práve preto vie `board-portrait.tsx` zmerať, že obsah pretekol, a zmenšiť
+   mierku. Keby sa zmršťovali, obsah by sa ticho orezal a meranie by nič
+   nezistilo. Voľné miesto (keď klient jedlá vypne) sa rozdelí medzi sekcie,
+   nezostane ako prázdny pás dole.
+*/
+.bp-telo {
+  /*
+     `--bp-zaklad` je typografická jednotka pri mierke 1. Nie je to okrúhle
+     číslo náhodou: je odmeraná na plnom menu klienta (12 jedál + NUDLE
+     a PŘÍDAVKY) tak, aby sa pri nej všetko zmestilo s CELÝMI popismi.
+     Vďaka tomu znamená `--bp-fit: 1` normálny stav — čo je nad ním, je
+     menšie menu (text sa zväčší), čo je pod ním, je väčšie menu.
+     Keď sa tu čokoľvek zmení, treba znova pozrieť dosku v prehliadači.
+  */
+  --bp-zaklad: 0.55vh;
+  --bp-u: calc(var(--bp-zaklad) * var(--bp-fit, 1));
+
+  position: relative;
+  z-index: 2;
+  min-height: 0;
+  overflow: hidden;
+  padding: calc(1.4 * var(--bp-u)) 2.4vh calc(1.6 * var(--bp-u));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: calc(1.3 * var(--bp-u));
+  animation: bp-fadein 900ms both;
+}
+
+@keyframes bp-fadein {
+  from { opacity: 0; transform: translateY(0.8vh); }
+  to   { opacity: 1; transform: none; }
+}
+
+.bp-sekcia {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: calc(1.1 * var(--bp-u));
+}
+
+/* deliaca čiara medzi sekciami */
+.bp-sekcia + .bp-sekcia {
+  border-top: 0.18vh solid var(--bp-rule);
+  padding-top: calc(1.3 * var(--bp-u));
+}
+
+/* ---------------- nadpis sekcie ---------------- */
+
+.bp-nadpis {
+  display: flex;
+  align-items: baseline;
+  gap: calc(1 * var(--bp-u));
+  padding-bottom: calc(0.45 * var(--bp-u));
+  border-bottom: 0.14vh solid var(--bp-ink);
+}
+.bp-nadpis h2 {
+  font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
+  font-size: calc(2.6 * var(--bp-u));
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  white-space: nowrap;
+}
+/* ozdoby sa nikdy nesmú lámať do druhého riadka — tlačili by čiaru nižšie */
+.bp-nadpis .bp-kana,
+.bp-nadpis .bp-en { margin-left: auto; white-space: nowrap; }
+.bp-nadpis .bp-kana {
+  font-size: calc(1.15 * var(--bp-u));
+  letter-spacing: 0.3em;
+  color: var(--bp-accent-deep);
+}
+.bp-nadpis .bp-en {
+  font-size: calc(1 * var(--bp-u));
+  letter-spacing: 0.26em;
+  /* žiadne uppercase: text píše klient v ChoiceQR, ide o ňom presne tak,
+     ako ho napísal */
+  color: var(--bp-ink-3);
+}
+
+/* ---------------- dva stĺpce jedál ---------------- */
+
+.bp-stlpce {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: calc(2.2 * var(--bp-u));
+  align-items: start;
+}
+.bp-stlpce--jeden { grid-template-columns: 1fr; }
+
+/* zvislá deliaca linka medzi polovicami */
+.bp-stlpec + .bp-stlpec {
+  border-left: 0.12vh solid var(--bp-linka);
+  padding-left: calc(2.2 * var(--bp-u));
+}
+
+.bp-stlpec {
+  display: flex;
+  flex-direction: column;
+  gap: calc(1.5 * var(--bp-u));
+  min-width: 0;
+}
+
+/* ---------------- jedlo ---------------- */
+
+/* bez fotiek — na výšku na ne nie je miesto, rovnako ako v krajných
+   stĺpcoch dosky na šírku */
+.bp-jedlo {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: calc(1 * var(--bp-u));
+}
+
+.bp-nazov {
+  grid-column: 1;
+  font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
+  font-size: calc(2.05 * var(--bp-u));
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: 0.01em;
+}
+
+.bp-cena {
+  grid-column: 2;
+  grid-row: 1;
+  font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
+  font-size: calc(2.05 * var(--bp-u));
+  font-weight: 700;
+  color: var(--bp-accent-deep);
+  white-space: nowrap;
+  align-self: start;
+}
+.bp-cena small { font-size: 0.55em; letter-spacing: 0.06em; margin-left: 0.25em; }
+
+.bp-nazov-en {
+  grid-column: 1 / -1;
+  font-size: calc(1.22 * var(--bp-u));
+  letter-spacing: 0.2em;
+  /* žiadne uppercase: text píše klient v ChoiceQR */
+  color: var(--bp-ink-2);
+  font-weight: 500;
+  opacity: 0.9;
+  margin-top: calc(0.2 * var(--bp-u));
+}
+
+/* Popis = zoznam ingrediencií. Každý kus je vlastný inline-block, takže sa
+   riadok láme prednostne na čiarke a slovné spojenie („čajové vejce")
+   sa nerozdelí. `normal` je tu schválne: keby bola fráza širšia než stĺpec,
+   zalomiť ju je vždy lepšie než odseknúť uprostred slova. */
+.bp-zlozka {
+  display: inline-block;
+  white-space: normal;
+  margin-right: 0.32em;
+}
+
+/* Počet riadkov popisu riadi `board-portrait.tsx` — keď sa obsah nezmestí,
+   radšej skráti popis, než by malo písmo spadnúť pod čitateľnú veľkosť
+   alebo by sa posledná položka odrezala. */
+.bp-popis {
+  grid-column: 1 / -1;
+  font-size: calc(1.45 * var(--bp-u));
+  line-height: 1.4;
+  color: var(--bp-ink-2);
+  margin-top: calc(0.45 * var(--bp-u));
+  display: -webkit-box;
+  -webkit-line-clamp: var(--bp-cz-lines, 3);
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Anglický popis: veľkosť určuje `--bp-desc-en` (násobok základnej mierky),
+   ktorý nastavuje `board-portrait.tsx` tak, aby sa preklad zmestil CELÝ. */
+.bp-popis-en {
+  grid-column: 1 / -1;
+  font-size: calc(var(--bp-desc-en, 1.2) * var(--bp-u));
+  line-height: 1.34;
+  color: var(--bp-ink-2);
+  opacity: 0.85;
+  font-style: italic;
+  margin-top: calc(0.2 * var(--bp-u));
+  display: -webkit-box;
+  -webkit-line-clamp: var(--bp-en-lines, 2);
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---------------- štítky ---------------- */
+
+.bp-stitky {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(0.75 * var(--bp-u) * var(--bp-tag-fit, 1));
+  margin-top: calc(0.45 * var(--bp-u));
+  font-size: calc(1 * var(--bp-u));
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bp-ink-3);
+}
+
+/* alergény: vždy samostatný riadok pod štítkami */
+.bp-stitky--alg { margin-top: calc(0.25 * var(--bp-u)); }
+
+/* Štítky v ramenoch sa nesmú zalomiť do druhého riadka — jedlo by narástlo
+   a tlačilo to pod sebou. Keď ich klient pridá viac, `--bp-tag-fit` ich
+   úmerne zmenší; hodnotu nastavuje `board-portrait.tsx` podľa nameranej
+   šírky. V ostatných sekciách je na zalomenie miesto, tam sa smú. */
+.bp-sekcia--hlavna .bp-stitky:not(.bp-stitky--alg) { flex-wrap: nowrap; }
+
+.bp-stitok {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(0.3 * var(--bp-u) * var(--bp-tag-fit, 1));
+  padding:
+    calc(0.2 * var(--bp-u) * var(--bp-tag-fit, 1))
+    calc(0.6 * var(--bp-u) * var(--bp-tag-fit, 1));
+  border: 0.1vh solid currentColor;
+  border-radius: 0.3vh;
+  font-size: calc(0.92 * var(--bp-u) * var(--bp-tag-fit, 1));
+  letter-spacing: calc(0.16em * var(--bp-tag-fit, 1));
+  white-space: nowrap;
+  flex: none;
+}
+.bp-stitok__en { opacity: 0.6; }
+
+.bp-veg { color: #3f6b34; }
+.bp-gf  { color: #2f6470; }   /* bezlepkové – iná farba než vegetariánske */
+.bp-hot { color: #b23b18; }
+.bp-alc { color: #6a4a86; }
+.bp-own { color: var(--bp-ink-2); }  /* vlastná značka klienta z ChoiceQR */
+.bp-new { color: var(--bp-accent-deep); border-color: var(--bp-accent-deep); }
+.bp-rec {
+  color: var(--bp-ink);
+  background: rgba(217, 116, 26, 0.16);
+  border-color: transparent;
+}
+
+/* Stupeň pálivosti sa dá odlíšiť aj bez čítania: 1 bodka = středně, 2 = pikantní. */
+.bp-hot::before {
+  content: "";
+  flex: none;
+  width: calc(0.4 * var(--bp-u) * var(--bp-tag-fit, 1));
+  height: calc(0.4 * var(--bp-u) * var(--bp-tag-fit, 1));
+  border-radius: 50%;
+  background: currentColor;
+}
+.bp-hot--mid { color: #c2701f; }
+.bp-hot--full::before {
+  box-shadow: calc(0.6 * var(--bp-u) * var(--bp-tag-fit, 1)) 0 0 currentColor;
+  margin-right: calc(0.6 * var(--bp-u) * var(--bp-tag-fit, 1));
+}
+.bp-hot--max { color: #8f2a10; }
+.bp-hot--max::before {
+  box-shadow:
+    calc(0.6 * var(--bp-u) * var(--bp-tag-fit, 1)) 0 0 currentColor,
+    calc(1.2 * var(--bp-u) * var(--bp-tag-fit, 1)) 0 0 currentColor;
+  margin-right: calc(1.2 * var(--bp-u) * var(--bp-tag-fit, 1));
+}
+
+/* ---------------- vypredané ---------------- */
+
+/* Stlmené + prečiarknutý názov aj cena. Vlastný štítok „vypredané" tu
+   zámerne nie je — pridával by štvrtý prvok do riadka štítkov. */
+.bp-jedlo.out { opacity: 0.42; }
+.bp-jedlo.out .bp-nazov,
+.bp-jedlo.out .bp-cena {
+  text-decoration: line-through;
+  text-decoration-thickness: 0.12vh;
+}
+
+/* ---------------- riadok s viacerými bunkami ---------------- */
+
+/* Drobné kategórie (DĚTSKÉ JÍDLO │ DEZERT) aj boxy s voľbami
+   (NUDLE │ PŘÍDAVKY) idú vedľa seba, nech neplytvajú výškou. */
+.bp-riadok {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  column-gap: calc(2 * var(--bp-u));
+  align-items: start;
+}
+.bp-bunka {
+  display: flex;
+  flex-direction: column;
+  gap: calc(1.1 * var(--bp-u));
+  min-width: 0;
+}
+.bp-bunka + .bp-bunka {
+  border-left: 0.12vh solid var(--bp-linka);
+  padding-left: calc(2 * var(--bp-u));
+}
+/* boxy majú vlastný rámik — ďalšia zvislá čiara medzi nimi by bola navyše */
+.bp-riadok--boxy .bp-bunka + .bp-bunka { border-left: none; padding-left: 0; }
+
+/* ---------------- boxy s voľbami a prídavkami ---------------- */
+
+.bp-box {
+  border: 0.18vh solid var(--bp-rule);
+  padding: calc(0.9 * var(--bp-u)) calc(1.1 * var(--bp-u)) calc(1 * var(--bp-u));
+  background: rgba(255, 255, 255, 0.42);
+}
+.bp-box h3 {
+  font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
+  font-size: calc(1.55 * var(--bp-u));
+  letter-spacing: 0.14em;
+  margin-bottom: calc(0.12 * var(--bp-u));
+}
+.bp-box__en {
+  font-size: calc(0.9 * var(--bp-u));
+  letter-spacing: 0.24em;
+  /* žiadne uppercase: text píše klient v ChoiceQR */
+  color: var(--bp-ink-3);
+  margin-bottom: calc(0.7 * var(--bp-u));
+}
+.bp-box ul {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: calc(0.2 * var(--bp-u));
+}
+.bp-box li {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 0;
+  align-items: baseline;
+  gap: calc(0.45 * var(--bp-u));
+  font-size: calc(1.15 * var(--bp-u));
+  color: var(--bp-ink-2);
+}
+.bp-vodic {
+  flex: 1;
+  border-bottom: 0.1vh dotted rgba(20, 17, 15, 0.3);
+  transform: translateY(-0.3vh);
+}
+.bp-p { color: var(--bp-accent-deep); font-weight: 700; white-space: nowrap; }
+/* položka, ktorá je v cene (0 Kč) — tlmenejšia, nie oranžová cena */
+.bp-p--vcene {
+  color: var(--bp-ink-3);
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* anglický názov prídavku na vlastnom riadku pod českým (cena aj bodkovaná
+   linka tak ostávajú zarovnané na prvom riadku), „incl." na jeho konci */
+.bp-pol-en {
+  flex: 0 0 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: calc(1 * var(--bp-u));
+  font-size: calc(0.85 * var(--bp-u));
+  letter-spacing: 0.14em;
+  /* žiadne uppercase: text píše klient v ChoiceQR */
+  color: var(--bp-ink-3);
+  line-height: 1.25;
+  margin-bottom: calc(0.25 * var(--bp-u));
+}
+.bp-pol-en__vcene {
+  font-style: italic;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  color: var(--bp-accent-deep);
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.bp-box__skupina + .bp-box__skupina { margin-top: calc(0.8 * var(--bp-u)); }
+.bp-box__label {
+  display: flex;
+  align-items: center;
+  gap: calc(0.5 * var(--bp-u));
+  font-size: calc(0.9 * var(--bp-u));
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  /* žiadne uppercase: text píše klient v ChoiceQR */
+  color: var(--bp-accent-deep);
+  margin-bottom: calc(0.3 * var(--bp-u));
+  padding-bottom: calc(0.2 * var(--bp-u));
+  border-bottom: 0.1vh solid rgba(168, 80, 12, 0.28);
+}
+
+/* Box s POVINNOU VOĽBOU (nudle) — odlíšený od prídavkov: prídavky sú
+   ohraničený rámik, voľba je plná teplá plocha s akcentovým pruhom vľavo. */
+.bp-box--volba {
+  border: none;
+  border-left: calc(0.45 * var(--bp-u)) solid var(--bp-accent-deep);
+  border-radius: 0 0.7vh 0.7vh 0;
+  background:
+    linear-gradient(180deg, rgba(217, 116, 26, 0.13), rgba(217, 116, 26, 0.06));
+  box-shadow: inset 0 0 0 0.1vh rgba(168, 80, 12, 0.18);
+}
+.bp-box--volba h3 { color: var(--bp-accent-deep); }
+.bp-box--volba .bp-box__en { color: rgba(168, 80, 12, 0.7); }
+.bp-box--volba .bp-vodic { border-bottom-color: rgba(168, 80, 12, 0.35); }
+
+/* rešpektuj používateľské „obmedziť pohyb" (na TV sa väčšinou neuplatní) */
+@media (prefers-reduced-motion: reduce) {
+  .bp-doska, .bp-telo { animation: none; }
+}
