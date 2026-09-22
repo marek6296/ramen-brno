@@ -8,8 +8,6 @@ import "./player.css";
 
 /** ako často sa TV pýta, či klient niečo nezmenil */
 const DOPYT_MS = 15_000;
-/** ako často sa obnovuje menu — rovnako ako na produkčnej TV */
-const MENU_MS = 60_000;
 
 export default function Player({ initial }: { initial: Screen }) {
   const [screen, setScreen] = useState(initial);
@@ -37,11 +35,13 @@ export default function Player({ initial }: { initial: Screen }) {
     return () => clearInterval(id);
   }, [screen.slug]);
 
-  /* Menu ťaháme cez existujúci proxy, ten istý, čo používa produkčná TV. */
+  /* Menu ťaháme cez existujúci proxy, ten istý, čo používa produkčná TV.
+     Načítame ho LEN RAZ — Board si ďalej obnovuje sám (má vlastný interval),
+     takže opakovaný dopyt odtiaľto by bol zbytočná prevádzka na každej TV. */
   useEffect(() => {
     if (!maMenu) return;
     let zive = true;
-    const nacitaj = async () => {
+    (async () => {
       try {
         const r = await fetch("/api/menu");
         if (!r.ok) return;
@@ -50,12 +50,9 @@ export default function Player({ initial }: { initial: Screen }) {
       } catch {
         /* keď ChoiceQR chvíľu nič nepošle, necháme na obrazovke to staré */
       }
-    };
-    nacitaj();
-    const id = setInterval(nacitaj, MENU_MS);
+    })();
     return () => {
       zive = false;
-      clearInterval(id);
     };
   }, [maMenu]);
 
