@@ -11,6 +11,10 @@ export default function ScreensList({ initial }: { initial: Screen[] }) {
   const [name, setName] = useState("");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [chyba, setChyba] = useState("");
+  /* Prepínanie orientácie beží pre každú obrazovku zvlášť, preto si stav
+     držíme podľa id — inak by jedna prebiehajúca zmena zablokovala všetky. */
+  const [prepinaSa, setPrepinaSa] = useState<Record<string, boolean>>({});
+  const [chybaOrientacie, setChybaOrientacie] = useState<Record<string, string>>({});
 
   async function pridaj(e: React.FormEvent) {
     e.preventDefault();
@@ -27,6 +31,40 @@ export default function ScreensList({ initial }: { initial: Screen[] }) {
     }
     setScreens((s) => [...s, data as Screen]);
     setName("");
+  }
+
+  /* Orientáciu sa dá prepnúť priamo v zozname — klient ju mení najčastejšie
+     a nechce kvôli tomu chodiť do detailu obrazovky. */
+  async function zmenOrientaciu(s: Screen, nova: Orientation) {
+    if (nova === s.orientation) return;
+    setPrepinaSa((z) => ({ ...z, [s.id]: true }));
+    setChybaOrientacie((z) => ({ ...z, [s.id]: "" }));
+    try {
+      const r = await fetch(`/api/admin/screens/${s.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ orientation: nova }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setChybaOrientacie((z) => ({
+          ...z,
+          [s.id]: data.error ?? "Orientáciu sa nepodarilo zmeniť",
+        }));
+        return;
+      }
+      // Držíme sa pravdy zo servera, nie toho, čo sme poslali.
+      setScreens((zoznam) =>
+        zoznam.map((x) => (x.id === s.id ? (data as Screen) : x)),
+      );
+    } catch {
+      setChybaOrientacie((z) => ({
+        ...z,
+        [s.id]: "Server neodpovedal — skús to znova",
+      }));
+    } finally {
+      setPrepinaSa((z) => ({ ...z, [s.id]: false }));
+    }
   }
 
   async function zmaz(s: Screen) {
@@ -59,10 +97,21 @@ export default function ScreensList({ initial }: { initial: Screen[] }) {
           <div className="riadok riadok--medzi">
             <div>
               <strong>{s.name}</strong>{" "}
-              <span className="ticho">
-                {s.orientation === "portrait" ? "na výšku" : "na šírku"} ·{" "}
-                {s.items.length} položiek v slede
-              </span>
+              <select
+                aria-label={`Orientácia obrazovky ${s.name}`}
+                value={s.orientation}
+                disabled={prepinaSa[s.id] === true}
+                onChange={(e) =>
+                  zmenOrientaciu(s, e.target.value as Orientation)
+                }
+              >
+                <option value="landscape">na šírku</option>
+                <option value="portrait">na výšku</option>
+              </select>{" "}
+              <span className="ticho">· {s.items.length} položiek v slede</span>
+              {chybaOrientacie[s.id] && (
+                <p className="chyba">{chybaOrientacie[s.id]}</p>
+              )}
             </div>
             <div className="riadok">
               <Link href={`/admin/screens/${s.id}`}>Nastaviť</Link>
