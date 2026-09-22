@@ -39,9 +39,22 @@ body:has(.admin) {
   height: auto;
   /* bez min-height by pod obsahom presvital iný podklad z globals.css */
   min-height: 100vh;
-  overflow: auto;
   background: var(--a-cierna);
   color: var(--a-papier);
+}
+
+html:has(.admin) {
+  overflow: auto;
+}
+
+/* POZOR: `body` tu NESMIE mať `overflow: auto`.
+   Keď `html` roluje, `auto` na `body` z neho spraví vlastnú rolovaciu plochu,
+   ktorá je presne taká vysoká ako obsah — a lepiaca lišta s `bottom: 0` sa
+   potom nemá o čo oprieť a zostane až na konci stránky (overené: lišta
+   skončila na y=1614 v okne vysokom 812 px). `visible` zámok z `globals.css`
+   uvoľní rovnako a rolovanie nechá na `html`. */
+body:has(.admin) {
+  overflow: visible;
 }
 
 /* --------------------------------------------------------------- obal --- */
@@ -191,20 +204,17 @@ body:has(.admin) {
   font-weight: 500;
 }
 
-.admin a {
+/* `:not(.tl)` je tu nutné, nie kozmetické: `.admin a` má vyššiu špecificitu
+   než `.tl--hlavne`, takže by odkazu v podobe tlačidla prebilo farbu písma
+   a „Upraviť" by bolo oranžové na oranžovom — teda neviditeľné. */
+.admin a:not(.tl) {
   color: var(--a-oranz);
   text-decoration: none;
   font-weight: 600;
 }
 
-.admin a:hover {
+.admin a:not(.tl):hover {
   text-decoration: underline;
-}
-
-/* odkaz, ktorý vyzerá ako tlačidlo, sa nesmie podčiarkovať */
-.admin a.tl,
-.admin a.tl:hover {
-  text-decoration: none;
 }
 
 /* --------------------------------------------------------- ovládanie --- */
@@ -279,6 +289,9 @@ body:has(.admin) {
   font-weight: 600;
   line-height: 1.2;
   color: var(--a-ink);
+  /* `.tl` nesie aj `<a>` (Upraviť, ← Zoznam) — bez tohto by mu zostalo
+     podčiarknutie z prehliadača */
+  text-decoration: none;
   background: transparent;
   border: 1px solid var(--a-linka);
   border-radius: var(--a-r-2);
@@ -865,9 +878,13 @@ body:has(.admin) {
   color: var(--a-ink-3);
 }
 
+/* Na úzkom telefóne sa výber prechodu vedľa čísla a šípok nezmestí. Namiesto
+   toho, aby sa zalomil do útržku, dostane zámerne celý vlastný riadok —
+   a šípky si `order` posunie hore vedľa čísla. */
 .sled__prechod {
-  flex: 1 1 8rem;
-  min-width: 7rem;
+  order: 2;
+  flex: 1 1 100%;
+  min-width: 0;
   min-height: var(--a-dotyk);
   padding: 0.4rem 0.6rem;
   font-family: var(--a-text);
@@ -881,6 +898,7 @@ body:has(.admin) {
 
 /* Šípky sú druhá cesta k preskladaniu — na dlhom zozname je ťahanie otrava. */
 .sled__sipky {
+  order: 1;
   display: inline-flex;
   flex: none;
   border: 1px solid var(--a-linka);
@@ -912,6 +930,19 @@ body:has(.admin) {
 .sled__sipka[disabled] {
   opacity: 0.25;
   cursor: default;
+}
+
+/* Od šírky, kde sa to zmestí, ide všetko ovládanie do jedného riadka. */
+@media (min-width: 28rem) {
+  .sled__prechod {
+    order: 0;
+    flex: 1 1 8rem;
+    min-width: 7rem;
+  }
+
+  .sled__sipky {
+    order: 0;
+  }
 }
 
 .sled__x {

@@ -226,9 +226,9 @@ export default function Editor({
 
   const sledRef = useRef<HTMLUListElement>(null);
   const [tah, setTah] = useState<Tah | null>(null);
-  /* Stredy riadkov meriame RAZ na začiatku ťahania. Počas ťahania sa riadky
+  /* Rozstup riadkov meriame RAZ na začiatku ťahania. Počas ťahania sa riadky
      posúvajú transformom, takže ich živé rozmery by lietali. */
-  const stredy = useRef<number[]>([]);
+  const pocet = useRef(0);
   const zaciatokY = useRef(0);
 
   function zacniTah(e: React.PointerEvent<HTMLButtonElement>, index: number) {
@@ -241,10 +241,10 @@ export default function Editor({
     const miery = riadky.map((r) => r.getBoundingClientRect());
     if (miery.length < 2) return; // jedna položka sa preskladať nedá
 
-    stredy.current = miery.map((m) => m.top + m.height / 2);
+    pocet.current = miery.length;
     zaciatokY.current = e.clientY;
-    // krok = výška riadka aj s medzerou pod ním
-    const krok = miery[0].height + Math.max(0, miery[1].top - miery[0].bottom);
+    // krok = rozstup dvoch susedných riadkov (výška aj s medzerou pod ňou)
+    const krok = Math.max(1, miery[1].top - miery[0].top);
 
     e.currentTarget.setPointerCapture(e.pointerId);
     e.preventDefault(); // na myši zabráni označovaniu textu
@@ -255,12 +255,14 @@ export default function Editor({
     setTah((t) => {
       if (!t) return t;
       const dy = e.clientY - zaciatokY.current;
-      const stred = stredy.current[t.od] + dy;
-      // nový index = koľko iných riadkov má stred nad ťahaným
-      let na = 0;
-      for (let i = 0; i < stredy.current.length; i++) {
-        if (i !== t.od && stredy.current[i] < stred) na++;
-      }
+      /* Riadky sledu sú rovnako vysoké (názov sa neláme, ovládanie má pevnú
+         výšku), takže cieľový index je jednoduchý podiel. Zaokrúhľovanie
+         znamená, že sa poradie preklopí už po polovici riadka — porovnávanie
+         stredov by si vyžiadalo celý riadok a ťahanie by pôsobilo lenivo. */
+      const na = Math.min(
+        pocet.current - 1,
+        Math.max(0, t.od + Math.round(dy / t.krok)),
+      );
       return { ...t, dy, na };
     });
   }
