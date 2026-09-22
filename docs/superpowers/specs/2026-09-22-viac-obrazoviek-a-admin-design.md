@@ -30,10 +30,13 @@ to súčasť tohto návrhu a nepôjde do toho, kým nebude celý systém odskú�
 
 | Rozhodnutie | Prečo |
 |---|---|
-| **Supabase** na nastavenia aj médiá | Je v stacku, ktorý Marek spravuje. Databáza aj úložisko na jednom mieste. Bezplatná úroveň (500 MB DB, 1 GB súborov) na tri TV bohato stačí. |
+| **Tenká vrstva nad úložiskom** | Kód sa nikde nepýta priamo Supabase, ale nášho rozhrania. Počas vývoja beží nad súborom na disku, takže nie sme blokovaní tým, že klient Supabase ešte nemá. Pripojenie je potom zmena na jednom mieste. |
+| **Supabase** na nastavenia aj médiá (na konci) | Je v stacku, ktorý Marek spravuje. Databáza aj úložisko na jednom mieste. Klient ho zatiaľ nemá — pripojíme ho, až keď vznikne. |
+| **Prihlásenie do adminu cez premenné prostredia** | Jeden človek, jedno heslo. Netreba naň databázu, takže admin funguje aj pred pripojením Supabase. |
 | **Dve samostatné menu** (landscape + portrait) | Obe ťahajú z toho istého ChoiceQR API, ale majú vlastný layout a vlastný súbor. Landscape je hotové a zamrznuté. |
 | **Obrazovky v databáze, nie napevno** | Klient povedal, že si to chce dať na viac televízorov. Pridanie štvrtej nesmie znamenať zásah do kódu. |
 | **Jedno meno a heslo** | Klient je jeden človek. Účty, role a pozvánky sú zbytočné. Heslo v premennej prostredia, prihlásenie podpísanou cookie. |
+| **Video až po Supabase** | Nie preto, že by sa nedalo uložiť, ale kvôli preneseným dátam — pri videách treba vidieť reálne čísla, než sa zvolí tarifa. Obrázky a menu stačia na to, aby systém dával zmysel. |
 | **TV si nastavenia pýta sama** | Ku každej TV by inak musel niekto prísť a reštartovať prehliadač. Stránka sa pravidelne pýta, či sa nastavenia nezmenili. |
 
 ## Dátový model
@@ -48,7 +51,7 @@ to súčasť tohto návrhu a nepôjde do toho, kým nebude celý systém odskú�
 | `orientation` | text | `landscape` \| `portrait` |
 | `updated_at` | timestamptz | podľa nej TV pozná, že sa niečo zmenilo |
 
-### `playlist_items` (2. etapa)
+### `playlist_items`
 
 | Stĺpec | Typ | Poznámka |
 |---|---|---|
@@ -56,10 +59,14 @@ to súčasť tohto návrhu a nepôjde do toho, kým nebude celý systém odskú�
 | `screen_id` | uuid → `screens.id` | |
 | `position` | int | poradie v slede |
 | `kind` | text | `menu` \| `image` \| `video` |
-| `media_path` | text | cesta v Supabase Storage; pri `menu` prázdne |
+| `media_path` | text | cesta k súboru v úložisku; pri `menu` prázdne |
 | `duration_s` | int | ako dlho je položka vidieť; pri videu sa berie dĺžka videa |
 
-Médiá idú do Supabase Storage. V databáze je len cesta, nie samotný súbor.
+Médiá idú do úložiska (lokálne počas vývoja, neskôr Supabase Storage).
+V databáze je len cesta, nie samotný súbor.
+
+`kind` = `video` sa spracováva až v 2. etape; typ v modeli je od začiatku,
+aby sa preň nemusel meniť ani playlist, ani prehrávač.
 
 ## Adresy
 
@@ -74,35 +81,49 @@ Médiá idú do Supabase Storage. V databáze je len cesta, nie samotný súbor.
 
 ## Etapy
 
-Rozpis prác, ktorý po tomto návrhu nasleduje, pokrýva **len 1. etapu**. Druhá
-a tretia dostanú vlastný rozpis, až keď bude tá pred nimi odskúšaná.
+Rozpis prác, ktorý po tomto návrhu nasleduje, pokrýva **len 1. etapu**. Ďalšie
+dostanú vlastný rozpis, až keď bude tá pred nimi odskúšaná.
 
-### 1. etapa — základ
+**Nič z toho nejde klientovi do prevádzky pred pripojením Supabase.** Vercel
+nemá disk — ani nahraté súbory, ani nastavenia z adminu by neprežili ďalšie
+nasadenie. Platí to rovnako pre obrázky ako pre videá; odklad videa je kvôli
+preneseným dátam, nie kvôli ukladaniu.
 
-Inštalatérska práca. Klientovi sa zatiaľ nebude mať čo pozerať; bez nej sa ale
-ďalej nedá.
+Ukážkové slidy sú výnimka — sú súčasťou projektu, takže prežijú všetko. Preto
+sa dá vzhľad na TV odskúšať hneď a naozaj, nie len na obrazovke počítača.
 
-- Supabase projekt, tabuľka `screens`, premenné prostredia
-- `/tv/<slug>` — načíta nastavenia, nastaví orientáciu, ukáže menu (landscape)
-  alebo zástupný text (portrait, kým nie je čo púšťať)
-- Fullscreen tlačidlo a skrývanie kurzora ako na súčasnej TV
-- `/admin` — prihlásenie, zoznam obrazoviek, pridať/premenovať/zmazať,
-  prepínač orientácie, odkaz na skopírovanie
+### 1. etapa — celý systém okrem videa
+
+Beží nad lokálnym úložiskom, takže sa dá postaviť a odskúšať hneď.
+
+- Vrstva nad úložiskom s lokálnou (súborovou) implementáciou
+- `/admin` — prihlásenie cez premenné prostredia, zoznam obrazoviek,
+  pridať/premenovať/zmazať, prepínač orientácie, odkaz na skopírovanie
+- Playlist pre obrazovku: poradie, trvanie, pridať/odobrať/presunúť.
+  Typy položiek: `menu` a `image`
+- **Sada ukážkových slidov priamo v projekte** (v štýle klienta, v `public/`),
+  v adminovi na výber zo zoznamu. Vďaka nim sa dá celé striedanie odskúšať na
+  TV bez úložiska. Nahrávanie vlastných pribudne v 2. etape; ukážkové zostanú
+  ako rýchla možnosť
+- `/tv/<slug>` — prehrávač, ktorý položky strieda; fullscreen tlačidlo
+  a skrývanie kurzora ako na súčasnej TV
 - TV sa každých ~15 s pýta, či sa nastavenia nezmenili; keď áno, prispôsobí sa
 
-**Hotovo, keď:** klient sa prihlási, vytvorí obrazovku, otvorí jej adresu na TV,
-prepne orientáciu v adminovi a TV sa sama prispôsobí — a `/` medzitým beží
-nezmenené.
+**Hotovo, keď:** po prihlásení sa dá vytvoriť obrazovka, nahrať obrázok,
+zostaviť sled s menu aj obrázkom, otvoriť adresu obrazovky a vidieť, ako sa
+striedajú — a `/` medzitým beží nezmenené.
 
-### 2. etapa — playlisty a médiá
+Obrazovka na výšku v tejto etape zvládne obrázky; menu na výšku príde v 3. etape.
 
-- Nahrávanie fotiek a videí do Supabase Storage (z adminu)
-- Playlist pre obrazovku: poradie, trvanie, pridať/odobrať/presunúť
-- Prehrávač na `/tv/<slug>`, ktorý položky strieda
-- Položka typu `menu` pustí menu ako súčasť slede
+### 2. etapa — pripojenie Supabase a video
 
-**Hotovo, keď:** klient nahrá fotku a video, zostaví sled, a na TV sa striedajú
-podľa nastavenia.
+- Supabase projekt, tabuľky, Storage, premenné prostredia
+- Výmena lokálnej implementácie úložiska za Supabase
+- Nahrávanie vlastných obrázkov namiesto výberu z ukážkových
+- Typ položky `video`, obmedzenie formátov, prehrávanie bez zvuku
+- V adminovi údaj, koľko miesta playlist zaberá
+
+**Hotovo, keď:** to isté ako v 1. etape, ale na skutočnej doméne a s videom.
 
 ### 3. etapa — menu na výšku
 
@@ -132,6 +153,22 @@ neprehrá.
 **ChoiceQR občas nepošle nič.** Zažili sme, že počas úprav prestal na ~45 sekúnd
 posielať sady doplnkov. Portrait menu na to musí byť rovnako odolné ako
 landscape — prázdne dáta neznamenajú prázdnu obrazovku navždy.
+
+**Supabase free tier** (overené na ich cenníku, 2026-09-22): 500 MB databáza,
+1 GB súborov, **5 GB prenesených dát mesačne**, limit 2 aktívne projekty,
+a projekt sa **po týždni nečinnosti uspí**.
+
+- Databáza: pár kB, nie je čo riešiť.
+- Prenesené dáta sú tá hranica, o ktorú pôjde. Tri TV, ktoré si raz denne
+  stiahnu svoj playlist: pri 50 MB playlistu ≈ 4,5 GB/mesiac (tesne pod),
+  pri 100 MB ≈ 9 GB/mesiac (nad). Free teda vyjde len s krátkymi videami.
+- Uspatie po týždni bežne nehrozí, lebo TV sa pýtajú každých 15 s. Ale keby
+  prevádzka zatvorila na týždeň, projekt zaspí a TV po návrate nenabehnú,
+  kým ho niekto ručne nezobudí. Pri niečom, čo visí na stene, to stojí za
+  zváženie platenej tarify (25 $/mes.).
+
+Rozhodnutie o tarife padne v 2. etape, keď budú známe skutočné veľkosti
+klientových videí — nie teraz odhadom.
 
 ## Čo zámerne nerobíme
 
