@@ -5,6 +5,10 @@
   overflow: hidden;
 }
 
+/* Orientácia obrazovky je v DOM ako .prehravac--landscape / .prehravac--portrait.
+   Zatiaľ k nim netreba žiadne pravidlá — v 3. etape sa podľa nich vyberie
+   rozloženie menu (na výšku sa jedálny lístok skladá inak než na šírku). */
+
 /* Každá položka leží cez celú plochu a prepína sa len priehľadnosťou.
    Zostáva v DOM, takže sa obrázok stiahne raz a menu si vie odmerať rozmery. */
 .polozka {

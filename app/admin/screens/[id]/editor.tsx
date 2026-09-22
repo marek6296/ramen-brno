@@ -70,6 +70,13 @@ export default function Editor({
     setStav("Uložené — TV sa prispôsobí do 15 sekúnd");
   }
 
+  /* Rozdelenie sa riadi práve zvolenou orientáciou (stav `orientation`), nie
+     tým, čo je uložené na serveri — klient si ju vie prepnúť pred uložením. */
+  const sediace = slides.filter((s) => s.orientation === orientation);
+  const nesediace = slides.filter((s) => s.orientation !== orientation);
+
+  const menuNaVysku = orientation === "portrait" && items.some((i) => i.kind === "menu");
+
   const nazov = (i: PlaylistItem) =>
     i.kind === "menu"
       ? "Menu (živé z ChoiceQR)"
@@ -140,6 +147,12 @@ export default function Editor({
             </span>
           </div>
         ))}
+        {menuNaVysku && (
+          <p className="ticho" style={{ marginTop: "0.8rem" }}>
+            Pozor: menu na výšku príde až v 3. etape. Zatiaľ sa aj na obrazovke
+            na výšku vykreslí rozloženie na šírku.
+          </p>
+        )}
       </div>
 
       <div className="karta">
@@ -148,12 +161,34 @@ export default function Editor({
           <button className="vedlajsie" onClick={pridajMenu}>
             + Menu
           </button>
-          {slides.map((s) => (
+          {sediace.map((s) => (
             <button key={s.path} className="vedlajsie" onClick={() => pridajSlide(s.path)}>
               + {s.label}
             </button>
           ))}
         </div>
+
+        {nesediace.length > 0 && (
+          <>
+            <h3 style={{ marginTop: "1.2rem" }}>Nesedia s orientáciou obrazovky</h3>
+            <p className="ticho">
+              Na tejto obrazovke po stranách zostanú prázdne pásy. Pridať sa
+              dajú, ak to tak chceš.
+            </p>
+            <div className="riadok">
+              {nesediace.map((s) => (
+                <button
+                  key={s.path}
+                  className="vedlajsie"
+                  onClick={() => pridajSlide(s.path)}
+                >
+                  + {s.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
         <p className="ticho" style={{ marginTop: "0.8rem" }}>
           Nahrávanie vlastných obrázkov pribudne po pripojení databázy.
         </p>

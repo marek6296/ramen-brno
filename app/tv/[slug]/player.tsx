@@ -107,7 +107,11 @@ export default function Player({ initial }: { initial: Screen }) {
   }
 
   return (
-    <div className={`prehravac${bezKurzora ? " prehravac--bez-kurzora" : ""}`}>
+    <div
+      className={`prehravac prehravac--${screen.orientation}${
+        bezKurzora ? " prehravac--bez-kurzora" : ""
+      }`}
+    >
       {items.length === 0 && (
         <p className="prazdne">
           Obrazovka „{screen.name}" zatiaľ nemá nastavený žiadny obsah.
