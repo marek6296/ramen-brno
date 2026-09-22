@@ -1,0 +1,140 @@
+/* Vzhľad slidov. Ten istý súbor slúži televízoru aj náhľadu v adminovi —
+   preto sa nikde nespolieha na výšku okna, ale na vlastný kontajner.
+   Rozmery sú v `cqh`/`cqw` (podiel kontajnera), aby náhľad v adminovi
+   vyzeral presne ako obraz na televízore, len menší. */
+
+.slide {
+  container-type: size;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ---- farebné varianty ---- */
+/* Pevné dvojice z vizuálu reštaurácie. Klient si nevie zvoliť nič, čo zhučí. */
+.slide--papier   { --s-poz: #f4f2ec; --s-text: #14110f; --s-zvyr: #a8500c; }
+.slide--tmava    { --s-poz: #14110f; --s-text: #f4f2ec; --s-zvyr: #d9741a; }
+.slide--oranzova { --s-poz: #a8500c; --s-text: #f9f5ee; --s-zvyr: #14110f; }
+
+.slide {
+  background: var(--s-poz);
+  color: var(--s-text);
+}
+
+/* ---- spoločné prvky ---- */
+
+.slide__telo {
+  padding: 7cqh 7cqw;
+  display: flex;
+  flex-direction: column;
+  gap: 3cqh;
+}
+
+.slide__nadpis {
+  font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 11cqh;
+  line-height: 1.05;
+  letter-spacing: 0.03em;
+}
+
+.slide__nadpis-en {
+  font-size: 3.4cqh;
+  letter-spacing: 0.28em;
+  opacity: 0.6;
+  margin-top: -1.5cqh;
+}
+
+.slide__kana {
+  font-family: "Noto Sans JP", sans-serif;
+  font-size: 5cqh;
+  letter-spacing: 0.3em;
+  color: var(--s-zvyr);
+}
+
+.slide__podtext { font-size: 4cqh; opacity: 0.75; }
+.slide__podtext-en { font-size: 2.8cqh; letter-spacing: 0.18em; opacity: 0.5; }
+
+.slide__linka {
+  height: 0.35cqh;
+  background: currentColor;
+  opacity: 0.18;
+}
+
+/* ---- jedlá ---- */
+
+.slide__jedla { display: flex; flex-direction: column; gap: 2.4cqh; }
+
+.slide__jedlo {
+  display: flex;
+  align-items: baseline;
+  gap: 2cqw;
+}
+
+.slide__jedlo-nazov {
+  font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 6cqh;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.slide__jedlo-popis {
+  font-size: 3cqh;
+  opacity: 0.7;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.slide__cena { font-size: 6cqh; font-weight: 700; color: var(--s-zvyr); white-space: nowrap; }
+.slide__cena--stara {
+  font-size: 4cqh;
+  font-weight: 400;
+  text-decoration: line-through;
+  opacity: 0.45;
+  color: inherit;
+}
+
+/* ---- na výšku: všetko na stred a pod seba ---- */
+
+.slide--portrait .slide__telo { text-align: center; gap: 4cqh; }
+.slide--portrait .slide__jedlo { flex-direction: column; align-items: center; gap: 1cqh; }
+.slide--portrait .slide__nadpis { font-size: 8cqh; }
+.slide--portrait .slide__jedlo-nazov { font-size: 5cqh; }
+.slide--portrait .slide__cena { font-size: 5.5cqh; }
+
+/* ---- animácie ---- */
+/* Len `opacity` a `transform` — nič iné sa na televízore nehýbe plynulo.
+   Bežia raz pri nástupe slidu, nie dokola: televízor svieti celý deň. */
+
+@keyframes slide-nastup {
+  from { opacity: 0; transform: translateY(2cqh); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes slide-zoom {
+  from { transform: scale(1.04); }
+  to   { transform: scale(1); }
+}
+
+.slide--anim-nastup .slide__telo { animation: slide-nastup 900ms ease both; }
+.slide--anim-zoom { animation: slide-zoom 9s ease-out both; }
+
+/* Odkrývanie textu: prvky nastupujú po sebe. Poradie určuje `--poradie`,
+   ktoré nastavuje komponent. */
+.slide--anim-text .slide__telo > * {
+  animation: slide-nastup 700ms ease both;
+  animation-delay: calc(var(--poradie, 0) * 160ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide--anim-nastup .slide__telo,
+  .slide--anim-zoom,
+  .slide--anim-text .slide__telo > * { animation: none; }
+}
