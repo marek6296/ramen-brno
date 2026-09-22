@@ -1,4 +1,5 @@
 import {
+  platnaAnimacia,
   SlideNotFoundError,
   prazdneFields,
   type NewSlide,
@@ -25,7 +26,7 @@ function naSlide(r: Riadok): Slide {
     name: r.name,
     template: r.template,
     variant: r.variant,
-    animation: r.animation,
+    animation: platnaAnimacia(r.animation),
     fields:
       r.fields && Object.keys(r.fields).length > 0
         ? r.fields

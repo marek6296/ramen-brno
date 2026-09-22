@@ -1,6 +1,15 @@
 export type SlideTemplate = "akcia" | "uvitanie" | "oznamenie" | "novinka";
 export type SlideVariant = "papier" | "tmava" | "oranzova";
-export type SlideAnimation = "ziadna" | "nastup" | "text" | "zoom";
+/**
+ * Dej NA slide, kým je na obrazovke. To, AKO slide príde a odíde, je niečo
+ * iné — to je prechod a nastavuje sa pri slede na obrazovke, nie tu.
+ */
+export type SlideAnimation =
+  | "ziadna"
+  | "dych"
+  | "priblizovanie"
+  | "zvyraznenie"
+  | "postupne";
 
 /** Polia šablóny Akcia. Anglické sú nepovinné — keď sú prázdne, riadok sa neukáže. */
 export type FieldsAkcia = {
@@ -113,12 +122,59 @@ export const VARIANTY: { hodnota: SlideVariant; popis: string }[] = [
   { hodnota: "oranzova", popis: "Oranžová" },
 ];
 
-export const ANIMACIE: { hodnota: SlideAnimation; popis: string }[] = [
-  { hodnota: "ziadna", popis: "Bez animácie" },
-  { hodnota: "nastup", popis: "Jemný nástup" },
-  { hodnota: "text", popis: "Odkrývanie textu" },
-  { hodnota: "zoom", popis: "Pomalý zoom" },
+export const ANIMACIE: {
+  hodnota: SlideAnimation;
+  popis: string;
+  popisDlhy: string;
+  /** keď je vyplnené, animácia dáva zmysel len pri týchto šablónach */
+  lenPre?: SlideTemplate[];
+}[] = [
+  { hodnota: "ziadna", popis: "Bez pohybu", popisDlhy: "Slide stojí." },
+  {
+    hodnota: "dych",
+    popis: "Jemné dýchanie",
+    popisDlhy: "Obsah pomaly rastie a klesá, dokola celý čas.",
+  },
+  {
+    hodnota: "priblizovanie",
+    popis: "Pomalé priblíženie",
+    popisDlhy: "Obsah sa po celý čas nenápadne približuje a zase vzďaľuje.",
+  },
+  {
+    hodnota: "zvyraznenie",
+    popis: "Pulzujúca cena a štítok",
+    popisDlhy: "To, čo je oranžové — cena, prípadne štítok — pomaly pulzuje.",
+    // Uvítanie a Oznámenie nemajú cenu ani štítok, takže by sa nerozsvietilo
+    // nič. Lepšie možnosť vôbec neponúknuť než nechať klienta vybrať si
+    // niečo, po čom sa nestane nič a bude to vyzerať ako porucha.
+    lenPre: ["akcia", "novinka"],
+  },
+  {
+    hodnota: "postupne",
+    popis: "Postupné odkrývanie",
+    popisDlhy: "Riadky sa po zobrazení odkryjú jeden po druhom.",
+  },
 ];
+
+export const ANIMACIE_HODNOTY: SlideAnimation[] = ANIMACIE.map((a) => a.hodnota);
+
+/** Animácie, ktoré majú pri danej šablóne čo rozhýbať. */
+export function animaciePre(t: SlideTemplate) {
+  return ANIMACIE.filter((a) => !a.lenPre || a.lenPre.includes(t));
+}
+export const VARIANTY_HODNOTY: SlideVariant[] = VARIANTY.map((v) => v.hodnota);
+
+/**
+ * Animácia z databázy, ktorú už nepoznáme, sa číta ako „bez pohybu“.
+ * Potrebné, kým nie je spustená migrácia `04-animacie-slidov.sql`: staré
+ * hodnoty (`nastup`, `text`, `zoom`) by inak v ponuke ostali prázdne
+ * a vyzeralo by to ako porucha.
+ */
+export function platnaAnimacia(x: unknown): SlideAnimation {
+  return ANIMACIE_HODNOTY.includes(x as SlideAnimation)
+    ? (x as SlideAnimation)
+    : "ziadna";
+}
 
 export function prazdneFields(t: SlideTemplate): SlideFields {
   switch (t) {

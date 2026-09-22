@@ -448,7 +448,12 @@ export default function Editor({
         ) : (
           <>
             <p className="ticho" style={{ marginTop: "0.35rem" }}>
-              Poradie zmeníš ťahaním za úchyt ⠿ alebo šípkami.
+              Trvanie a prechod sa nastavujú tu — prechod je to, AKO položka
+          priletí a odletí. Čo sa deje na slide, kým svieti, si vyberieš
+          v Slidoch ako animáciu.
+        </p>
+        <p className="ticho">
+          Poradie zmeníš ťahaním za úchyt ⠿ alebo šípkami.
             </p>
             <ul className="sled" ref={sledRef}>
               {items.map((i, index) => (

@@ -165,32 +165,70 @@
 .slide--portrait .slide__odkaz { font-size: 6cqh; }
 .slide--portrait .slide__telo--novinka .slide__jedlo-nazov { font-size: 6.5cqh; }
 
-/* ---- animácie ---- */
-/* Len `opacity` a `transform` — nič iné sa na televízore nehýbe plynulo.
-   Bežia raz pri nástupe slidu, nie dokola: televízor svieti celý deň. */
+/* ---- animácie slidu ----
 
+   POZOR na rozdiel, ktorý sa ľahko poplietne: tu ide o DEJ NA SLIDE, kým
+   svieti na obrazovke. To, ako slide priletí a odletí, je prechod a rieši
+   ho prehrávač pri slede — `player.css`. Keby sme tu robili nástupy,
+   klient by tú istú vec nastavoval dvakrát a raz by si odporovali.
+
+   Preto sú tieto animácie donekonečna opakujúce sa, nie jednorazové.
+   Len `opacity` a `transform` — nič iné sa na televízore nehýbe plynulo. */
+
+/* Jemné dýchanie: obsah sotva badateľne rastie a klesá. Menej než 3 % —
+   viac by na 50-palcovej obrazovke pôsobilo, že sa obraz pokazil. */
+@keyframes slide-dych {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.025); }
+}
+.slide--anim-dych .slide__telo {
+  animation: slide-dych 9s ease-in-out infinite;
+}
+
+/* Pomalé priblíženie tam a späť. `alternate` zámerne: bez neho by obraz
+   po doběhnutí skokom zletel naspäť na začiatok. */
+@keyframes slide-priblizovanie {
+  from { transform: scale(1); }
+  to { transform: scale(1.07); }
+}
+.slide--anim-priblizovanie .slide__telo {
+  animation: slide-priblizovanie 22s ease-in-out infinite alternate;
+}
+
+/* Pulzuje to, čo je v zvýrazňovacej farbe — cena, štítok, japonská ozdoba.
+   Podľa šablóny je to zakaždým niečo iné a to je v poriadku: keď daný
+   prvok na slide nie je, animácia proste nemá čo rozhýbať. */
+@keyframes slide-zvyraznenie {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.slide--anim-zvyraznenie .slide__cena,
+.slide--anim-zvyraznenie .slide__stitok,
+.slide--anim-zvyraznenie .slide__kana {
+  animation: slide-zvyraznenie 2.8s ease-in-out infinite;
+}
+/* Preškrtnutá pôvodná cena nepulzuje — nie je to ona, na čo má hosť pozerať. */
+.slide--anim-zvyraznenie .slide__cena--stara {
+  animation: none;
+}
+
+/* Postupné odkrývanie: riadky nastúpia jeden po druhom. Poradie určuje
+   `--poradie`, ktoré nastavuje komponent šablóny. */
 @keyframes slide-nastup {
   from { opacity: 0; transform: translateY(2cqh); }
-  to   { opacity: 1; transform: none; }
+  to { opacity: 1; transform: none; }
 }
-
-@keyframes slide-zoom {
-  from { transform: scale(1.04); }
-  to   { transform: scale(1); }
-}
-
-.slide--anim-nastup .slide__telo { animation: slide-nastup 900ms ease both; }
-.slide--anim-zoom { animation: slide-zoom 9s ease-out both; }
-
-/* Odkrývanie textu: prvky nastupujú po sebe. Poradie určuje `--poradie`,
-   ktoré nastavuje komponent. */
-.slide--anim-text .slide__telo > * {
+.slide--anim-postupne .slide__telo > * {
   animation: slide-nastup 700ms ease both;
-  animation-delay: calc(var(--poradie, 0) * 160ms);
+  animation-delay: calc(var(--poradie, 0) * 180ms);
 }
 
+/* Televízor visí na stene a beží celý deň — kto si nastaví pokojný obraz,
+   nech ho dostane. */
 @media (prefers-reduced-motion: reduce) {
-  .slide--anim-nastup .slide__telo,
-  .slide--anim-zoom,
-  .slide--anim-text .slide__telo > * { animation: none; }
+  .slide__telo,
+  .slide__telo > *,
+  .slide__cena,
+  .slide__stitok,
+  .slide__kana { animation: none !important; }
 }

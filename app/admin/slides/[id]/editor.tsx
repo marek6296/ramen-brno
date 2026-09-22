@@ -7,6 +7,7 @@ import type { Dish, MenuData } from "@/lib/menu";
 import type { Orientation } from "@/lib/storage/types";
 import {
   ANIMACIE,
+  animaciePre,
   VARIANTY,
   stojiNaJedlach,
   type FieldsAkcia,
@@ -311,17 +312,23 @@ export default function Editor({ slide, menu }: { slide: Slide; menu: MenuData |
             ))}
           </select>
         </Pole>
-        <Pole popis="Animácia" rada="Ako sa obsah slidu objaví, keď na neho príde rad.">
+        <Pole
+          popis="Animácia"
+          rada="Čo sa deje NA slide, kým je na obrazovke. To, ako slide priletí a odletí, je prechod — ten sa nastavuje pri obrazovke, v slede položiek."
+        >
           <select
             value={animation}
             onChange={(e) => setAnimation(e.target.value as SlideAnimation)}
           >
-            {ANIMACIE.map((a) => (
+            {animaciePre(slide.template).map((a) => (
               <option key={a.hodnota} value={a.hodnota}>
                 {a.popis}
               </option>
             ))}
           </select>
+          <span className="pole__rada">
+            {ANIMACIE.find((a) => a.hodnota === animation)?.popisDlhy}
+          </span>
         </Pole>
       </div>
 

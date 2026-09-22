@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { getSlideStore } from "@/lib/slides";
 import { isLoggedIn } from "@/lib/session";
 import {
+  ANIMACIE_HODNOTY,
   SlideNotFoundError,
+  VARIANTY_HODNOTY,
   type SlideAnimation,
   type SlidePatch,
   type SlideVariant,
@@ -10,8 +12,6 @@ import {
 
 type Ctx = { params: Promise<{ id: string }> };
 
-const VARIANTY: SlideVariant[] = ["papier", "tmava", "oranzova"];
-const ANIMACIE: SlideAnimation[] = ["ziadna", "nastup", "text", "zoom"];
 
 export async function PATCH(req: Request, { params }: Ctx) {
   if (!(await isLoggedIn())) {
@@ -22,8 +22,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const patch: SlidePatch = {};
 
   if (typeof body.name === "string" && body.name.trim()) patch.name = body.name.trim();
-  if (VARIANTY.includes(body.variant as SlideVariant)) patch.variant = body.variant;
-  if (ANIMACIE.includes(body.animation as SlideAnimation)) patch.animation = body.animation;
+  if (VARIANTY_HODNOTY.includes(body.variant as SlideVariant)) patch.variant = body.variant;
+  if (ANIMACIE_HODNOTY.includes(body.animation as SlideAnimation)) patch.animation = body.animation;
   // `fields` berieme ako celok — tvar stráži šablóna v editore aj typy.
   if (body.fields && typeof body.fields === "object") patch.fields = body.fields;
 
@@ -32,6 +32,18 @@ export async function PATCH(req: Request, { params }: Ctx) {
   } catch (e) {
     if (e instanceof SlideNotFoundError) {
       return NextResponse.json({ error: "Slide neexistuje" }, { status: 404 });
+    }
+    /* Databáza stráži zoznam povolených animácií vlastnou kontrolou. Kým
+       nie je spustená migrácia `supabase/04-animacie-slidov.sql`, nové
+       animácie odmietne — a „Uloženie zlyhalo“ by obsluhe nepovedalo nič. */
+    if (/23514/.test(String(e)) && /animation/i.test(String(e))) {
+      return NextResponse.json(
+        {
+          error:
+            "Databáza túto animáciu zatiaľ nepozná — treba spustiť migráciu supabase/04-animacie-slidov.sql.",
+        },
+        { status: 409 },
+      );
     }
     return NextResponse.json({ error: "Uloženie zlyhalo" }, { status: 500 });
   }
