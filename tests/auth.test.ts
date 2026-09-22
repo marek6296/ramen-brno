@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { createHmac } from "node:crypto";
 import { checkCredentials, signToken, verifyToken } from "@/lib/auth";
 
 beforeEach(() => {
   process.env.ADMIN_USER = "admin";
   process.env.ADMIN_PASSWORD = "tajne-heslo";
-  process.env.ADMIN_SECRET = "podpisovy-kluc";
+  process.env.ADMIN_SECRET = "dost-dlhy-podpisovy-kluc-na-test";
 });
 
 describe("checkCredentials", () => {
@@ -45,9 +46,29 @@ describe("token", () => {
     expect(verifyToken("")).toBe(false);
   });
 
+  it("bez ADMIN_SECRET sa token nedá podpísať", () => {
+    delete process.env.ADMIN_SECRET;
+    expect(() => signToken(Date.now() + 60_000)).toThrow(/ADMIN_SECRET/);
+  });
+
+  it("prikrátke ADMIN_SECRET sa odmietne", () => {
+    process.env.ADMIN_SECRET = "kratke";
+    expect(() => signToken(Date.now() + 60_000)).toThrow(/ADMIN_SECRET/);
+  });
+
+  it("bez ADMIN_SECRET neprejde ŽIADEN token — ani sfalšovaný prázdnym kľúčom", () => {
+    const platny = signToken(Date.now() + 60_000);
+    delete process.env.ADMIN_SECRET;
+    expect(verifyToken(platny)).toBe(false);
+    // takto si útočník vyrábal cookie, kým sa podpisovalo prázdnym kľúčom
+    const payload = String(Date.now() + 60_000);
+    const falosny = `${payload}.${createHmac("sha256", "").update(payload).digest("base64url")}`;
+    expect(verifyToken(falosny)).toBe(false);
+  });
+
   it("token podpísaný iným kľúčom neprejde", () => {
     const t = signToken(Date.now() + 60_000);
-    process.env.ADMIN_SECRET = "iny-kluc";
+    process.env.ADMIN_SECRET = "uplne-iny-dlhy-podpisovy-kluc";
     expect(verifyToken(t)).toBe(false);
   });
 });

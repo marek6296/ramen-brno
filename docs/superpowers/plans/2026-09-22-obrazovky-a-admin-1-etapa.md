@@ -620,11 +620,16 @@ Expected: PASS, všetkých 9 testov prihlásenia
 
 - [ ] **Step 5: Vytvor `.env.local`**
 
+Hodnoty si vygeneruj, NEOPISUJ ich odtiaľto — čokoľvek, čo je napísané
+v pláne, je v gite a prestáva byť tajomstvom:
+
+```bash
+printf 'ADMIN_USER=admin\nADMIN_PASSWORD=%s\nADMIN_SECRET=%s\n' \
+  "$(openssl rand -base64 15 | tr -d '/+=')" \
+  "$(openssl rand -base64 48 | tr -d '/+=')" > .env.local
 ```
-ADMIN_USER=admin
-ADMIN_PASSWORD=ramen2026
-ADMIN_SECRET=zmen-ma-pred-nasadenim
-```
+
+`ADMIN_SECRET` musí mať aspoň 24 znakov — kratšie `lib/auth.ts` odmietne.
 
 - [ ] **Step 6: Over, že `.env.local` nejde do gitu**
 

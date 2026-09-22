@@ -11,8 +11,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Nesprávne meno alebo heslo" }, { status: 401 });
   }
 
+  let token: string;
+  try {
+    token = signToken(Date.now() + SESSION_MS);
+  } catch (e) {
+    // Nesprávne nastavené prostredie nesmie skončiť záhadnou chybou —
+    // prevádzkar musí z hlášky vedieť, čo presne doplniť.
+    return NextResponse.json(
+      { error: String(e instanceof Error ? e.message : e) },
+      { status: 500 },
+    );
+  }
+
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(SESSION_COOKIE, signToken(Date.now() + SESSION_MS), {
+  res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
