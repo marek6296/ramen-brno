@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSlideStore } from "@/lib/slides";
 import { isLoggedIn } from "@/lib/session";
-import type { SlideTemplate } from "@/lib/slides/types";
+import { SABLONY, type SlideTemplate } from "@/lib/slides/types";
 
 export async function GET() {
   if (!(await isLoggedIn())) {
@@ -22,7 +22,11 @@ export async function POST(req: Request) {
   if (!name) {
     return NextResponse.json({ error: "Názov nesmie byť prázdny" }, { status: 400 });
   }
-  const template: SlideTemplate = body.template === "uvitanie" ? "uvitanie" : "akcia";
+  // Zoznam povolených šablón berieme zo `SABLONY`, aby sa na novú nemuselo
+  // myslieť aj tu — inak by ju toto ticho prepísalo na akciu.
+  const template: SlideTemplate = SABLONY.some((s) => s.hodnota === body.template)
+    ? (body.template as SlideTemplate)
+    : "akcia";
   try {
     return NextResponse.json(
       await getSlideStore().createSlide({ name, template }),

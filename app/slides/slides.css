@@ -105,6 +105,56 @@
   color: inherit;
 }
 
+/* ---- Oznámenie ---- */
+/* Odkaz hosťom je celá výpoveď slidu — väčší než podtext, ale menší než
+   nadpis Akcie, lebo býva to celá veta, nie dve slová. */
+
+.slide__odkaz {
+  font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 7.5cqh;
+  line-height: 1.12;
+}
+
+.slide__odkaz-en {
+  font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 400;
+  font-size: 3.2cqh;
+  letter-spacing: 0.22em;
+  opacity: 0.6;
+  margin-top: 1.2cqh;
+}
+
+.slide__podtext--pod-linkou { margin-top: 2cqh; }
+
+/* ---- Novinka ---- */
+/* Štítok je plný obdĺžnik v zvýrazňovacej farbe — na diaľku ho oko chytí
+   skôr než text. `inline-block`, aby bol široký presne na svoj obsah;
+   `align-self` by nefungovalo, lebo sedí vnútri obaľovacieho divu. */
+
+.slide__stitok {
+  display: inline-block;
+  font-family: "Roboto Condensed", Roboto, Arial, sans-serif;
+  font-weight: 700;
+  font-size: 3.2cqh;
+  letter-spacing: 0.3em;
+  color: var(--s-poz);
+  background: var(--s-zvyr);
+  padding: 0.9cqh 1.6cqw;
+  border-radius: 0.6cqh;
+}
+
+.slide__stitok-en {
+  font-size: 2.6cqh;
+  letter-spacing: 0.24em;
+  opacity: 0.55;
+  margin-top: 1cqh;
+}
+
+/* Pri novinke je jedlo hlavný hrdina slidu, nie položka v zozname. */
+.slide__telo--novinka .slide__jedlo-nazov { font-size: 8cqh; }
+.slide__telo--novinka .slide__jedlo-popis { font-size: 3.2cqh; }
+
 /* ---- na výšku: všetko na stred a pod seba ---- */
 
 .slide--portrait .slide__telo { text-align: center; gap: 4cqh; }
@@ -112,6 +162,8 @@
 .slide--portrait .slide__nadpis { font-size: 8cqh; }
 .slide--portrait .slide__jedlo-nazov { font-size: 5cqh; }
 .slide--portrait .slide__cena { font-size: 5.5cqh; }
+.slide--portrait .slide__odkaz { font-size: 6cqh; }
+.slide--portrait .slide__telo--novinka .slide__jedlo-nazov { font-size: 6.5cqh; }
 
 /* ---- animácie ---- */
 /* Len `opacity` a `transform` — nič iné sa na televízore nehýbe plynulo.

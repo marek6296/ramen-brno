@@ -1,5 +1,7 @@
 import Akcia from "./akcia";
 import Uvitanie from "./uvitanie";
+import Oznamenie from "./oznamenie";
+import Novinka from "./novinka";
 import type { MenuData } from "@/lib/menu";
 import type { Orientation } from "@/lib/storage/types";
 import type { Slide } from "@/lib/slides/types";
@@ -32,8 +34,12 @@ export default function SlideView({
     <div className={triedy}>
       {slide.template === "akcia" ? (
         <Akcia slide={slide} menu={menu} currency={currency} />
-      ) : (
+      ) : slide.template === "uvitanie" ? (
         <Uvitanie slide={slide} menu={menu} />
+      ) : slide.template === "oznamenie" ? (
+        <Oznamenie slide={slide} />
+      ) : (
+        <Novinka slide={slide} menu={menu} currency={currency} />
       )}
     </div>
   );

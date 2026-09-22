@@ -592,12 +592,17 @@ export default function Editor({
           Ťuknutím sa položka pridá na koniec sledu.
         </p>
 
+        <p className="zdroje__nadpis">Živé menu</p>
         <div className="mriezka">
           <button type="button" className="dlazdica dlazdica--menu" onClick={pridajMenu}>
             <span className="dlazdica__znak">MENU</span>
             <span className="dlazdica__popis">živé z ChoiceQR</span>
           </button>
 
+        </div>
+
+        {slidy.length > 0 && <p className="zdroje__nadpis">Moje slidy</p>}
+        <div className="mriezka">
           {slidy.map((s) => (
             <button
               key={s.id}
@@ -610,6 +615,10 @@ export default function Editor({
             </button>
           ))}
 
+        </div>
+
+        <p className="zdroje__nadpis">Ukážkové obrázky</p>
+        <div className="mriezka">
           {slides.map((s) => {
             const sedi = s.orientation === orientation;
             return (
@@ -638,6 +647,10 @@ export default function Editor({
             );
           })}
 
+        </div>
+
+        <p className="zdroje__nadpis">Nahraté súbory</p>
+        <div className="mriezka">
           {mediaZoznam.map((m) => (
             <div className="dlazdica" key={m.path}>
               <button

@@ -1150,3 +1150,16 @@ body:has(.admin) {
   border-color: var(--a-oranz);
 }
 .dlazdica__nazov { font-weight: 600; }
+
+/* Nadpisy skupín v mriežke zdrojov. Bez nich ležal nahratý obrázok hneď
+   vedľa dlaždice slidu a dal sa s ňou ľahko zameniť — stalo sa to hneď
+   pri prvom použití. */
+.zdroje__nadpis {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--a-ink-2);
+}
+.zdroje__nadpis:first-of-type { margin-top: 0.75rem; }
