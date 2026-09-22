@@ -8,16 +8,32 @@ import type { Orientation } from "@/lib/storage/types";
 import {
   ANIMACIE,
   VARIANTY,
+  stojiNaJedlach,
   type FieldsAkcia,
+  type FieldsNovinka,
+  type FieldsOznamenie,
   type FieldsUvitanie,
   type Slide,
   type SlideAnimation,
+  type SlideFields,
   type SlideVariant,
 } from "@/lib/slides/types";
 
-/** Odtlačok stavu — podľa neho vieme, či má klient neuložené zmeny. */
-const odtlacok = (s: Pick<Slide, "name" | "variant" | "animation" | "fields">) =>
-  JSON.stringify(s);
+/**
+ * Odtlačok stavu — podľa neho vieme, či má klient neuložené zmeny.
+ *
+ * Zámerne skladáme pole zo štyroch hodnôt, nie `JSON.stringify(objekt)`:
+ * do tejto funkcie sa dá podať aj celý `Slide` a vtedy by sa do odtlačku
+ * dostali aj `id`, `template` a `updatedAt`. Odtlačok načítaného slidu by
+ * sa potom nikdy nezhodol s odtlačkom rozpracovaného a lišta by hlásila
+ * neuložené zmeny hneď po otvorení. Takto na tom nezáleží.
+ */
+const odtlacok = (s: {
+  name: string;
+  variant: SlideVariant;
+  animation: SlideAnimation;
+  fields: SlideFields;
+}) => JSON.stringify([s.name, s.variant, s.animation, s.fields]);
 
 function vsetkyJedla(menu: MenuData | null): Dish[] {
   if (!menu) return [];
@@ -60,14 +76,19 @@ export default function Editor({ slide, menu }: { slide: Slide; menu: MenuData |
     setStav("Uložené — na televízoroch do 15 sekúnd");
   }
 
-  const jeAkcia = slide.template === "akcia";
   const fa = fields as FieldsAkcia;
   const fu = fields as FieldsUvitanie;
-  const uprav = (zmena: Partial<FieldsAkcia & FieldsUvitanie>) =>
-    setFields((f) => ({ ...f, ...zmena }) as typeof f);
+  const fo = fields as FieldsOznamenie;
+  const fn = fields as FieldsNovinka;
+  /** Akcia aj Novinka stoja na jedlách — obe ukazujú výber z menu. */
+  const sJedlami = stojiNaJedlach(slide.template);
+  const vybrane = sJedlami ? (fields as { dishIds: string[] }).dishIds : [];
+  const uprav = (
+    zmena: Partial<FieldsAkcia & FieldsUvitanie & FieldsOznamenie & FieldsNovinka>,
+  ) => setFields((f) => ({ ...f, ...zmena }) as typeof f);
 
   function prepniJedlo(id: string) {
-    const su = fa.dishIds;
+    const su = vybrane;
     uprav({ dishIds: su.includes(id) ? su.filter((x) => x !== id) : [...su, id] });
   }
 
@@ -124,7 +145,7 @@ export default function Editor({ slide, menu }: { slide: Slide; menu: MenuData |
           <input value={name} onChange={(e) => setName(e.target.value)} />
         </label>
 
-        {jeAkcia ? (
+        {slide.template === "akcia" ? (
           <>
             <label>
               Nadpis
@@ -154,7 +175,7 @@ export default function Editor({ slide, menu }: { slide: Slide; menu: MenuData |
               />
             </label>
           </>
-        ) : (
+        ) : slide.template === "uvitanie" ? (
           <>
             <label>
               Názov podniku
@@ -189,10 +210,54 @@ export default function Editor({ slide, menu }: { slide: Slide; menu: MenuData |
               Zobraziť otváraciu dobu (ťahá sa živo z ChoiceQR)
             </label>
           </>
+        ) : slide.template === "oznamenie" ? (
+          <>
+            <label>
+              Odkaz hosťom
+              <input
+                value={fo.text}
+                onChange={(e) => uprav({ text: e.target.value })}
+                placeholder="napr. Dnes zavřeno"
+              />
+            </label>
+            <label>
+              Odkaz anglicky (nepovinné)
+              <input value={fo.textEn} onChange={(e) => uprav({ textEn: e.target.value })} />
+            </label>
+            <label>
+              Podtext (nepovinné)
+              <input value={fo.podtext} onChange={(e) => uprav({ podtext: e.target.value })} />
+            </label>
+            <label>
+              Podtext anglicky (nepovinné)
+              <input
+                value={fo.podtextEn}
+                onChange={(e) => uprav({ podtextEn: e.target.value })}
+              />
+            </label>
+          </>
+        ) : (
+          <>
+            <label>
+              Štítok
+              <input
+                value={fn.stitok}
+                onChange={(e) => uprav({ stitok: e.target.value })}
+                placeholder="NOVINKA"
+              />
+            </label>
+            <label>
+              Štítok anglicky (nepovinné)
+              <input value={fn.stitokEn} onChange={(e) => uprav({ stitokEn: e.target.value })} />
+            </label>
+            <p className="ticho">
+              Názov, popis aj cena jedla sa ťahajú z ChoiceQR. Vyber ho nižšie.
+            </p>
+          </>
         )}
       </div>
 
-      {jeAkcia && (
+      {sJedlami && (
         <div className="karta">
           <h2>Jedlá zo živého menu</h2>
           <p className="ticho">
@@ -204,7 +269,7 @@ export default function Editor({ slide, menu }: { slide: Slide; menu: MenuData |
             {jedla.map((d) => (
               <button
                 key={d.id}
-                className={`jedlo-tl${fa.dishIds.includes(d.id) ? " jedlo-tl--vybrane" : ""}`}
+                className={`jedlo-tl${vybrane.includes(d.id) ? " jedlo-tl--vybrane" : ""}`}
                 onClick={() => prepniJedlo(d.id)}
               >
                 <span>{d.name}</span>
