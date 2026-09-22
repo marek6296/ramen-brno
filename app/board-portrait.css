@@ -283,6 +283,28 @@
   padding-left: calc(2.2 * var(--bp-u));
 }
 
+/* Dva stĺpce jedál s PEVNÝMI riadkami. Ľavá a pravá polovica lícujú — nie
+   že jedno jedlo je vyššie a náprotivok nižšie. Výšku riadka určí vyššie
+   z dvojice, presne ako na doske na šírku. Deliaca čiara je kreslená
+   pozadím v strede medzery, takže netreba ďalší prvok. */
+.bp-mriezka {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(var(--bp-riadkov, 1), auto);
+  grid-auto-flow: column;
+  column-gap: calc(4.4 * var(--bp-u));
+  row-gap: calc(1.5 * var(--bp-u));
+  align-items: start;
+  background-image: linear-gradient(
+    to right,
+    transparent calc(50% - 0.06vh),
+    var(--bp-linka) calc(50% - 0.06vh),
+    var(--bp-linka) calc(50% + 0.06vh),
+    transparent calc(50% + 0.06vh)
+  );
+  background-repeat: no-repeat;
+}
+
 .bp-stlpec {
   display: flex;
   flex-direction: column;
@@ -482,6 +504,14 @@
 /* boxy majú vlastný rámik — ďalšia zvislá čiara medzi nimi by bola navyše */
 .bp-riadok--boxy .bp-bunka + .bp-bunka { border-left: none; padding-left: 0; }
 
+/* Voľba nudlí má dve položky, prídavkov je deväť — rovnaké šírky by boli
+   len zdanlivá symetria. Prídavky dostanú dvojnásobok, aby ich dva stĺpce
+   mali kde dýchať a obe škatule skončili v podobnej výške. */
+.bp-riadok--boxy {
+  grid-auto-flow: unset;
+  grid-template-columns: 1fr 2fr;
+}
+
 /* ---------------- boxy s voľbami a prídavkami ---------------- */
 
 .bp-box {
@@ -507,6 +537,14 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: calc(0.2 * var(--bp-u));
+}
+
+/* Prídavkov je veľa a v jednom stĺpci robili dole dlhý úzky chvost, zatiaľ
+   čo vedľa nich bol nízky box s nudľami. Do dvoch stĺpcov sadnú na polovičnú
+   výšku a spodok dosky je vyvážený. */
+.bp-box--siroky ul {
+  grid-template-columns: 1fr 1fr;
+  column-gap: calc(2.4 * var(--bp-u));
 }
 .bp-box li {
   display: flex;

@@ -180,18 +180,25 @@ function BoxVolieb({
   groups,
   currency,
   variant,
+  siroky,
 }: {
   title: string;
   titleEn?: string;
   groups: OptionGroup[];
   currency: string;
   variant?: "choice";
+  /** veľa položiek -> do dvoch stĺpcov, nech box nerastie do dlhého chvosta */
+  siroky?: boolean;
 }) {
   const usable = groups.filter((g) => g.items.length > 0);
   if (!usable.length) return null;
   const showLabels = usable.length > 1;
   return (
-    <div className={`bp-box${variant === "choice" ? " bp-box--volba" : ""}`}>
+    <div
+      className={`bp-box${variant === "choice" ? " bp-box--volba" : ""}${
+        siroky ? " bp-box--siroky" : ""
+      }`}
+    >
       <h3>{title}</h3>
       {titleEn && <div className="bp-box__en">{titleEn}</div>}
       {usable.map((g) => (
@@ -266,16 +273,18 @@ function Stlpce({ dishes, currency }: { dishes: Dish[]; currency: string }) {
       </div>
     );
   }
-  const del = Math.ceil(dishes.length / 2);
-  const casti = [dishes.slice(0, del), dishes.slice(del)];
+  /* Pevné riadky, nie dva nezávislé stĺpce. Predtým si každá polovica pakovala
+     jedlá tesne pod seba, takže ľavá a pravá strana nelícovali — jedno jedlo
+     vyššie, náprotivok nižšie. Mriežka s `grid-auto-flow: column` drží riadky
+     zarovnané, rovnako ako doska na šírku. */
+  const riadkov = Math.ceil(dishes.length / 2);
   return (
-    <div className="bp-stlpce">
-      {casti.map((cast, i) => (
-        <div className="bp-stlpec" key={i}>
-          {cast.map((d) => (
-            <Jedlo key={d.id} d={d} currency={currency} />
-          ))}
-        </div>
+    <div
+      className="bp-mriezka"
+      style={{ "--bp-riadkov": riadkov } as React.CSSProperties}
+    >
+      {dishes.map((d) => (
+        <Jedlo key={d.id} d={d} currency={currency} />
       ))}
     </div>
   );
@@ -341,7 +350,19 @@ function usePrisposobenie(signature: string) {
     if (!el) return;
 
     const prisposob = () => {
-      const pretecie = () => el.scrollHeight > el.clientHeight + 1;
+      /**
+       * Odseknutý preklad sa počíta ZA pretečenie. Bez toho si dve slučky
+       * nižšie šliapali po sebe: najprv sa zmenšil anglický popis, aby sa
+       * zmestil, potom sa celá doska zväčšila (bolo miesto) — čím popis
+       * znova narástol a znova sa odsekol. Takto rast zastane skôr, než sa
+       * to stane.
+       */
+      const orezanyPreklad = () =>
+        [...el.querySelectorAll<HTMLElement>(".bp-popis-en")].some(
+          (e) => e.scrollHeight > e.clientHeight + 1,
+        );
+      const pretecie = () =>
+        el.scrollHeight > el.clientHeight + 1 || orezanyPreklad();
 
       for (const u of UROVNE) {
         el.style.setProperty("--bp-cz-lines", String(u.cz));
@@ -352,10 +373,7 @@ function usePrisposobenie(signature: string) {
         //    riadkov. Nezvolíme veľkosť natvrdo: keď klient popis predĺži,
         //    doska sa sama stiahne, namiesto toho aby preklad odsekla.
         //    Hodnota je násobok základnej mierky, takže sa zmenšuje s ňou.
-        const orezany = () =>
-          [...el.querySelectorAll<HTMLElement>(".bp-popis-en")].some(
-            (e) => e.scrollHeight > e.clientHeight + 1,
-          );
+        const orezany = orezanyPreklad;
         let v = MAX_DESC_EN;
         el.style.setProperty("--bp-desc-en", String(v));
         while (v > MIN_DESC_EN && orezany()) {
@@ -574,6 +592,7 @@ export default function BoardPortrait({ initial }: { initial: MenuData }) {
                   titleEn="Extras — add to any bowl"
                   groups={data.extras}
                   currency={c}
+                  siroky
                 />
               </div>
             )}
