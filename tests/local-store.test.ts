@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createLocalStore } from "@/lib/storage/local";
@@ -66,6 +66,13 @@ describe("lokálne úložisko", () => {
     await store.createScreen({ name: "A", slug: "a", orientation: "landscape" });
     const druhy = createLocalStore(dir);
     expect(await druhy.listScreens()).toHaveLength(1);
+  });
+
+  it("poškodený súbor padne a netvári sa ako prázdne úložisko", async () => {
+    await writeFile(path.join(dir, "store.json"), "toto nie je JSON", "utf8");
+    // Keby sa vrátil prázdny zoznam, najbližší zápis by prepísal všetky
+    // obrazovky klienta — tichá strata dát.
+    await expect(store.listScreens()).rejects.toThrow(/poškoden/i);
   });
 
   it("úprava neexistujúcej obrazovky padne", async () => {

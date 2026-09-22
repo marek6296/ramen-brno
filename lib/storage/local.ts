@@ -15,10 +15,28 @@ export function createLocalStore(dir: string): Store {
   const file = path.join(dir, "store.json");
 
   async function read(): Promise<Data> {
+    let obsah: string;
     try {
-      return JSON.parse(await readFile(file, "utf8")) as Data;
-    } catch {
-      return { screens: [] };
+      obsah = await readFile(file, "utf8");
+    } catch (e) {
+      // Chýbajúci súbor je v poriadku — úložisko ešte nikto nezaložil.
+      if ((e as NodeJS.ErrnoException)?.code === "ENOENT") return { screens: [] };
+      // Čokoľvek iné (práva, chybný disk) NESMIE vyzerať ako prázdne
+      // úložisko. Najbližší zápis by prepísal všetky obrazovky klienta.
+      throw new Error(
+        `Úložisko ${file} sa nedá prečítať: ${(e as Error)?.message ?? e}`,
+      );
+    }
+
+    try {
+      return JSON.parse(obsah) as Data;
+    } catch (e) {
+      // Poškodený JSON radšej nahlásime, než aby sme dáta ticho zahodili.
+      throw new Error(
+        `Úložisko ${file} je poškodené (nedá sa prečítať ako JSON): ${
+          (e as Error)?.message ?? e
+        }`,
+      );
     }
   }
 
