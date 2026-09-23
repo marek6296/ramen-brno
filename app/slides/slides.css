@@ -381,3 +381,12 @@
   .slide__stitok,
   .slide__kana { animation: none !important; }
 }
+
+/* Znamienko medzi časťami spojenej ponuky („Ramen + Kola"). Zámerne vo
+   zvýrazňovacej farbe a s medzerami — bez nich by dve jedlá splynuli
+   do jedného dlhého názvu. */
+.slide__plus {
+  margin: 0 0.8cqw;
+  color: var(--s-zvyr);
+  font-weight: 700;
+}

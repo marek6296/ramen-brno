@@ -27,6 +27,8 @@ describe("tvary slidov", () => {
       nadpis: "",
       nadpisEn: "",
       dishIds: [],
+      polozky: [],
+      spojene: false,
       akciovaCena: "",
       podtext: "",
       podtextEn: "",

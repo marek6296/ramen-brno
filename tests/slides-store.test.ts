@@ -29,7 +29,8 @@ describe("úložisko slidov", () => {
     expect(s.variant).toBe("papier");
     expect(s.animation).toBe("ziadna");
     expect(s.fields).toEqual({
-      nadpis: "", nadpisEn: "", dishIds: [], akciovaCena: "", podtext: "", podtextEn: "",
+      nadpis: "", nadpisEn: "", dishIds: [], polozky: [], spojene: false,
+      akciovaCena: "", podtext: "", podtextEn: "",
     });
   });
 

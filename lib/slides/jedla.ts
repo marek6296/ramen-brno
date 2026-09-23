@@ -1,5 +1,5 @@
 import type { Dish, MenuData } from "@/lib/menu";
-import { stojiNaJedlach, type Slide } from "./types";
+import { polozkyAkcie, stojiNaJedlach, type FieldsAkcia, type Slide } from "./types";
 
 /**
  * Jedlá zo slidu vyhľadá v živých dátach z ChoiceQR. Poradie drží podľa
@@ -26,6 +26,17 @@ export function najdiJedla(menu: MenuData | null, ids: string[]): Dish[] {
  */
 export function jeSlidePrazdny(slide: Slide, menu: MenuData | null): boolean {
   if (!stojiNaJedlach(slide.template)) return false;
+
+  if (slide.template === "akcia") {
+    const polozky = polozkyAkcie(slide.fields as FieldsAkcia);
+    if (polozky.length === 0) return false;
+    // Vlastný text ako „Coca-Cola" na ChoiceQR nestojí, takže je čo ukázať
+    // aj vtedy, keď jedlá z menu medzitým zmizli.
+    if (polozky.some((p) => p.druh === "vlastna")) return false;
+    const ids = polozky.map((p) => (p.druh === "jedlo" ? p.dishId : ""));
+    return najdiJedla(menu, ids).length === 0;
+  }
+
   const f = slide.fields as { dishIds: string[] };
   if (f.dishIds.length === 0) return false;
   return najdiJedla(menu, f.dishIds).length === 0;

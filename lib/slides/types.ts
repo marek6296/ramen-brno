@@ -17,12 +17,30 @@ export type SlideAnimation =
   | "zvyraznenie"
   | "postupne";
 
+/**
+ * Položka akcie. Buď jedlo z ChoiceQR (vtedy sa názov aj cena ťahajú živo),
+ * alebo vlastný text — veľa akcií znie „ramen + kola" a kola v jedálnom
+ * lístku nie je.
+ */
+export type PolozkaAkcie =
+  | { druh: "jedlo"; dishId: string }
+  | { druh: "vlastna"; text: string; textEn: string };
+
 /** Polia šablóny Akcia. Anglické sú nepovinné — keď sú prázdne, riadok sa neukáže. */
 export type FieldsAkcia = {
   nadpis: string;
   nadpisEn: string;
-  /** id jedál z ChoiceQR; názov a cena sa ťahajú živo */
+  /**
+   * Starší tvar: iba id jedál z ChoiceQR. Nové slidy používajú `polozky`,
+   * tento zostáva, aby sa už uložené akcie dali prečítať bez migrácie.
+   */
   dishIds: string[];
+  polozky: PolozkaAkcie[];
+  /**
+   * Spojiť položky do JEDNEJ ponuky („Ramen + Kola") s jednou cenou.
+   * Bez toho je každá položka vlastný riadok s vlastnou cenou.
+   */
+  spojene: boolean;
   /** zľavnená cena ako text — ChoiceQR ju nepozná, píše ju klient */
   akciovaCena: string;
   podtext: string;
@@ -210,6 +228,16 @@ export const VARIANTY_HODNOTY: SlideVariant[] = VARIANTY.map((v) => v.hodnota);
  * hodnoty (`nastup`, `text`, `zoom`) by inak v ponuke ostali prázdne
  * a vyzeralo by to ako porucha.
  */
+/**
+ * Položky akcie v jednotnom tvare. Slidy uložené pred zavedením vlastných
+ * položiek majú len `dishIds` — prečítame ich ako jedlá z menu, takže staré
+ * akcie fungujú ďalej a nič sa nemuselo migrovať.
+ */
+export function polozkyAkcie(f: FieldsAkcia): PolozkaAkcie[] {
+  if (Array.isArray(f.polozky) && f.polozky.length > 0) return f.polozky;
+  return (f.dishIds ?? []).map((dishId) => ({ druh: "jedlo", dishId }) as const);
+}
+
 export function platnaAnimacia(x: unknown): SlideAnimation {
   return ANIMACIE_HODNOTY.includes(x as SlideAnimation)
     ? (x as SlideAnimation)
@@ -219,7 +247,16 @@ export function platnaAnimacia(x: unknown): SlideAnimation {
 export function prazdneFields(t: SlideTemplate): SlideFields {
   switch (t) {
     case "akcia":
-      return { nadpis: "", nadpisEn: "", dishIds: [], akciovaCena: "", podtext: "", podtextEn: "" };
+      return {
+        nadpis: "",
+        nadpisEn: "",
+        dishIds: [],
+        polozky: [],
+        spojene: false,
+        akciovaCena: "",
+        podtext: "",
+        podtextEn: "",
+      };
     case "uvitanie":
       return { nazov: "", kana: "", podtitul: "", podtitulEn: "", zobrazitHodiny: true };
     case "oznamenie":

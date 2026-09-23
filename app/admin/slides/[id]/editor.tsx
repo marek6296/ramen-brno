@@ -9,11 +9,13 @@ import {
   ANIMACIE,
   animaciePre,
   VARIANTY,
+  polozkyAkcie,
   stojiNaJedlach,
   type FieldsAkcia,
   type FieldsNovinka,
   type FieldsOznamenie,
   type FieldsUvitanie,
+  type PolozkaAkcie,
   type Slide,
   type SlideAnimation,
   type SlideFields,
@@ -74,6 +76,8 @@ export default function Editor({ slide, menu }: { slide: Slide; menu: MenuData |
   const [animation, setAnimation] = useState<SlideAnimation>(slide.animation);
   const [fields, setFields] = useState(slide.fields);
   const [nahlad, setNahlad] = useState<Orientation>("landscape");
+  const [novaVlastna, setNovaVlastna] = useState("");
+  const [novaVlastnaEn, setNovaVlastnaEn] = useState("");
   const [ulozeny, setUlozeny] = useState(() => odtlacok(slide));
   const [stav, setStav] = useState("");
 
@@ -106,14 +110,53 @@ export default function Editor({ slide, menu }: { slide: Slide; menu: MenuData |
   const fn = fields as FieldsNovinka;
   /** Akcia aj Novinka stoja na jedlách — obe ukazujú výber z menu. */
   const sJedlami = stojiNaJedlach(slide.template);
-  const vybrane = sJedlami ? (fields as { dishIds: string[] }).dishIds : [];
+  const jeAkcia = slide.template === "akcia";
+  /* Akcia má položky, ktoré môžu byť aj vlastný text. Novinka stojí len na
+     jedlách z menu, tam stačí zoznam id. */
+  const polozky = jeAkcia ? polozkyAkcie(fa) : [];
+  const vybrane = jeAkcia
+    ? polozky.flatMap((p) => (p.druh === "jedlo" ? [p.dishId] : []))
+    : sJedlami
+      ? (fields as { dishIds: string[] }).dishIds
+      : [];
   const uprav = (
     zmena: Partial<FieldsAkcia & FieldsUvitanie & FieldsOznamenie & FieldsNovinka>,
   ) => setFields((f) => ({ ...f, ...zmena }) as typeof f);
 
   function prepniJedlo(id: string) {
-    const su = vybrane;
-    uprav({ dishIds: su.includes(id) ? su.filter((x) => x !== id) : [...su, id] });
+    if (!jeAkcia) {
+      uprav({
+        dishIds: vybrane.includes(id)
+          ? vybrane.filter((x) => x !== id)
+          : [...vybrane, id],
+      });
+      return;
+    }
+    const je = polozky.some((p) => p.druh === "jedlo" && p.dishId === id);
+    zmenPolozky(
+      je
+        ? polozky.filter((p) => !(p.druh === "jedlo" && p.dishId === id))
+        : [...polozky, { druh: "jedlo", dishId: id }],
+    );
+  }
+
+  /**
+   * Položky sa ukladajú do `polozky`; `dishIds` držíme dorovnané, aby staršia
+   * verzia stránky otvorená na inej záložke slide nezobrazila prázdny.
+   */
+  function zmenPolozky(nove: PolozkaAkcie[]) {
+    uprav({
+      polozky: nove,
+      dishIds: nove.flatMap((p) => (p.druh === "jedlo" ? [p.dishId] : [])),
+    });
+  }
+
+  function pridajVlastnu() {
+    const text = novaVlastna.trim();
+    if (!text) return;
+    zmenPolozky([...polozky, { druh: "vlastna", text, textEn: novaVlastnaEn.trim() }]);
+    setNovaVlastna("");
+    setNovaVlastnaEn("");
   }
 
   return (
@@ -277,16 +320,101 @@ export default function Editor({ slide, menu }: { slide: Slide; menu: MenuData |
 
       {sJedlami && (
         <div className="karta">
-          <h2>Jedlá zo živého menu</h2>
+          <h2>{jeAkcia ? "Položky akcie" : "Jedlá zo živého menu"}</h2>
           <p className="ticho">
             Názov a bežná cena sa ťahajú z ChoiceQR — keď ich tam zmeníš, zmenia
             sa aj tu.
           </p>
+
+          {jeAkcia && (
+            <>
+              <label className="pole pole--zaskrtavacie">
+                <input
+                  type="checkbox"
+                  checked={!!fa.spojene}
+                  onChange={(e) => uprav({ spojene: e.target.checked })}
+                />
+                <span>
+                  Spojiť do jednej ponuky
+                  <span className="pole__rada">
+                    Napríklad „Ramen + Kola" na jednom riadku a za jednu cenu.
+                    Bez zaškrtnutia je každá položka vlastný riadok s vlastnou
+                    cenou.
+                  </span>
+                </span>
+              </label>
+
+              {polozky.length > 0 && (
+                <ul className="polozky">
+                  {polozky.map((p, i) => (
+                    <li className="polozky__riadok" key={i}>
+                      <span className="polozky__poradie">{i + 1}</span>
+                      <span className="polozky__nazov">
+                        {p.druh === "vlastna"
+                          ? p.text
+                          : (jedla.find((d) => d.id === p.dishId)?.name ??
+                            "Jedlo už nie je v menu")}
+                        {p.druh === "vlastna" && (
+                          <span className="polozky__znacka">vlastná</span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        className="tl tl--ticho tl--male"
+                        onClick={() => zmenPolozky(polozky.filter((_, j) => j !== i))}
+                      >
+                        Odobrať
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <Pole
+                popis="Vlastná položka"
+                rada="Pre to, čo v jedálnom lístku nie je — nápoj, dezert, darček. Cenu nemá, tú určuje akciová cena celej ponuky."
+              >
+                <div className="vlastna">
+                  <input
+                    type="text"
+                    value={novaVlastna}
+                    onChange={(e) => setNovaVlastna(e.target.value)}
+                    placeholder="napr. Coca-Cola 0,33 l"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        pridajVlastnu();
+                      }
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={novaVlastnaEn}
+                    onChange={(e) => setNovaVlastnaEn(e.target.value)}
+                    placeholder="anglicky (nepovinné)"
+                  />
+                  <button
+                    type="button"
+                    className="tl tl--tmave tl--male"
+                    onClick={pridajVlastnu}
+                    disabled={!novaVlastna.trim()}
+                  >
+                    Pridať
+                  </button>
+                </div>
+              </Pole>
+            </>
+          )}
+
           {jedla.length === 0 && <p className="ticho">Menu sa nepodarilo načítať.</p>}
+          <p className="pole__popis" style={{ marginTop: "0.9rem" }}>
+            {jeAkcia ? "Pridať jedlo z menu" : "Jedlá"}
+          </p>
           <div className="jedla-vyber">
             {jedla.map((d) => (
               <button
                 key={d.id}
+                type="button"
                 className={`jedlo-tl${vybrane.includes(d.id) ? " jedlo-tl--vybrane" : ""}`}
                 onClick={() => prepniJedlo(d.id)}
               >
