@@ -22,6 +22,24 @@ import type { Slide } from "@/lib/slides/types";
 const prechodyPre = (kind: PlaylistItem["kind"]) =>
   kind === "menu" ? PRECHODY.filter((p) => !p.skresluje) : PRECHODY;
 
+/**
+ * Odporúčaný rozmer média pre danú obrazovku.
+ *
+ * Určuje ho OTOČENIE, nie orientácia. Televízor posiela obraz vždy na šírku
+ * (1920×1080); keď je zavesený na výšku, otáča sa samotná stránka a plocha
+ * pre médium má vymenené strany. Overené meraním na bežiacom prehrávači:
+ * pri okne 1920×1080 a otočení doprava má položka 1080×1920.
+ *
+ * Obrázok sa vykresľuje cez `object-fit: contain`, takže sa NIKDY neoreže —
+ * pri nesprávnom pomere strán ostanú po stranách pruhy. Preto je pomer
+ * dôležitejší než samotné rozlíšenie.
+ */
+const ROZMER_MEDIA: Record<Rotation, { rozmer: string; pomer: string; stvorka: string }> = {
+  none: { rozmer: "1920 × 1080 px", pomer: "na šírku, 16:9", stvorka: "3840 × 2160 px" },
+  right: { rozmer: "1080 × 1920 px", pomer: "na výšku, 9:16", stvorka: "2160 × 3840 px" },
+  left: { rozmer: "1080 × 1920 px", pomer: "na výšku, 9:16", stvorka: "2160 × 3840 px" },
+};
+
 /** veľkosť v MB na jedno desatinné miesto — bajty obsluhe nič nepovedia */
 const vMB = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`;
 
@@ -676,10 +694,22 @@ export default function Editor({
         />
 
         {mediaDostupne ? (
-          <p className="ticho" style={{ marginTop: "0.8rem" }}>
-            {mediaStav ||
-              "JPEG, PNG, WebP, SVG a MP4, najviac 50 MB. Videá hrajú bez zvuku — televízory automatické prehratie so zvukom nedovolia."}
-          </p>
+          <>
+            <p className="ticho" style={{ marginTop: "0.8rem" }}>
+              {mediaStav ||
+                "JPEG, PNG, WebP, SVG a MP4, najviac 50 MB. Videá hrajú bez zvuku — televízory automatické prehratie so zvukom nedovolia."}
+            </p>
+            <p className="rozmer-media">
+              <strong>
+                Rozmer pre túto obrazovku: {ROZMER_MEDIA[rotation].rozmer}
+              </strong>{" "}
+              ({ROZMER_MEDIA[rotation].pomer}). Na 4K televízore môžeš dať{" "}
+              {ROZMER_MEDIA[rotation].stvorka}, menšie sa nafúkne.
+              <br />
+              Dôležitý je pomer strán — obraz sa nikdy neoreže, takže pri inom
+              pomere ostanú po stranách prázdne pruhy.
+            </p>
+          </>
         ) : (
           <p className="ticho" style={{ marginTop: "0.8rem" }}>
             Nahrávanie vlastných obrázkov a videí vyžaduje pripojenú databázu.

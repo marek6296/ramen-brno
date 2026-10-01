@@ -1277,3 +1277,17 @@ body:has(.admin) {
 }
 .vlastna input { flex: 1 1 11rem; }
 .vlastna button { flex: none; }
+
+/* Odporúčaný rozmer média. Vlastná trieda, nie `ticho` — toto je údaj,
+   ktorý si obsluha pri nahrávaní naozaj má prečítať, nie poznámka pod čiarou. */
+.rozmer-media {
+  margin: 0.6rem 0 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--a-r-2);
+  background: var(--a-papier-2);
+  border: 1px solid var(--a-linka);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--a-ink-2);
+}
+.rozmer-media strong { color: var(--a-ink); }
