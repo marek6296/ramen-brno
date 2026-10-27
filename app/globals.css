@@ -955,3 +955,33 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
 .list.twocol:not(.dense) .dish .price   { font-size: calc(var(--fs-price) * var(--fit, 1)); }
 .list.twocol:not(.dense) .dish .name-en { font-size: calc(var(--fs-dish-en) * var(--fit, 1)); }
 .list.twocol:not(.dense) .dish .desc    { font-size: calc(var(--fs-desc) * var(--fit, 1)); }
+
+/* ---- viac miesta pre popisy ramenov ----
+   Klient rozšíril menu (Katsu kari má 13 surovín, Classic dlhý názov) a pri
+   pôvodnom rozložení sa popisy v plnej veľkosti nezmestili. Miesto berieme
+   tam, kde ho je nazvyš, nie z veľkosti písma:
+   - krajné stĺpce sú poloprázdne -> stredný blok je širší,
+   - menšia medzera medzi polovicami a o kúsok menšia fotka -> širší text,
+   - anglický názov má užší rozpal písmen, takže dlhý preklad ostane
+     na jednom riadku. */
+.cols { grid-template-columns: 0.75fr 3fr 0.75fr; }
+.list.twocol { column-gap: 2.4vh; }
+.list.twocol:not(.dense) { --thumb: 5.2vh; }
+.list.twocol .dish .name-en { letter-spacing: 0.14em; }
+
+/* Popis smie mať riadok navyše (CZ 4, EN 3) — vysoké jedlo si ho vezme
+   z riadkov, ktoré majú rezervu. Celý popis je dôležitejší než to, aby
+   všetky jedlá mali rovnako veľa riadkov. */
+.list.twocol:not(.dense) .desc    { -webkit-line-clamp: 4; }
+.list.twocol:not(.dense) .desc-en { -webkit-line-clamp: 3; }
+
+/* Riadky mriežky sa riadia obsahom: každý je aspoň taký vysoký ako jeho
+   najvyššie jedlo a zvyšok miesta sa rozdelí rovným dielom. Predtým mal každý
+   riadok pevnú výšku, takže jeden dlhý názov (Classic na dva riadky) stačil
+   na to, aby sa zmenšovalo celé menu, hoci iné riadky mali voľné miesto.
+   Riadkov je vždy `--slot-rows` (aspoň 4) a jedlá majú pozíciu z board.tsx:
+   keď klient jedlo vypne a jedál je menej, prázdny riadok ostane dole
+   a ostatné jedlá zostanú tam, kde boli. */
+.list.twocol {
+  grid-template-rows: repeat(var(--slot-rows, 4), minmax(min-content, 1fr));
+}
