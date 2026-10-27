@@ -403,25 +403,33 @@ const MAX_DESC_EN = 1.2;
 const MIN_DESC_EN = 1.0;
 /** Spodná hranica zmenšovania štítkov; 4 dvojjazyčné sa do nej ešte zmestia. */
 const MIN_TAG_FIT = 0.6;
+/**
+ * Najmenšia mierka písma ramenov (`--fit`), pri ktorej ešte necháme popisy
+ * celé. Český popis tak klesne najviac na ~1,4vh — rovnako ako v krajných
+ * stĺpcoch, takže je to stále čitateľné z diaľky.
+ */
+const MIN_FIT = 0.86;
+
+/** prvok, ktorému `-webkit-line-clamp` odsekol koniec textu („…") */
+const orezane = (el: HTMLElement, sel: string) =>
+  [...el.querySelectorAll<HTMLElement>(sel)].some(
+    (e) => e.scrollHeight > e.clientHeight + 1,
+  );
 
 function useDenseGrid(signature: string) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const meraj = () => {
-      el.classList.remove("dense"); // vždy meriame v normálnom režime
 
+    /** anglický popis a štítky pri aktuálnej mierke `--fit` */
+    const sadzba = () => {
       // 1) Anglický popis čo najväčší, ale stále CELÝ na dva riadky.
       //    Nezvolíme veľkosť natvrdo: keď klient popis predĺži, doska sa
       //    sama stiahne, namiesto toho aby preklad odsekla.
-      const orezany = () =>
-        [...el.querySelectorAll<HTMLElement>(".desc-en")].some(
-          (e) => e.scrollHeight > e.clientHeight + 1,
-        );
       let v = MAX_DESC_EN;
       el.style.setProperty("--desc-en", `${v}vh`);
-      while (v > MIN_DESC_EN && orezany()) {
+      while (v > MIN_DESC_EN && orezane(el, ".desc-en")) {
         v = Math.round((v - 0.03) * 100) / 100;
         el.style.setProperty("--desc-en", `${v}vh`);
       }
@@ -449,18 +457,42 @@ function useDenseGrid(signature: string) {
         // Posledná záchrana pri nezmyselnom počte — zalomiť je lepšie než odseknúť.
         if (pretecie()) m.style.flexWrap = "wrap";
       }
+    };
 
-      // 3) Až potom výška — písmo aj štítky ju ovplyvňujú.
-      const riadky = getComputedStyle(el)
-        .gridTemplateRows.split(" ")
-        .map(parseFloat)
-        .filter((n) => Number.isFinite(n));
-      if (!riadky.length) return;
-      const slot = Math.min(...riadky);
-      const nezmesti = [...el.children].some(
-        (c) => c.getBoundingClientRect().height > slot + 1,
-      );
-      if (nezmesti) el.classList.add("dense");
+    const meraj = () => {
+      el.classList.remove("dense"); // vždy meriame v normálnom režime
+
+      // Výška slotu podľa toho istého vzorca ako v CSS (`--slot`). Z vypočítanej
+      // mriežky ju čítať nejde: riadok s vysokým jedlom sa natiahne (`minmax`),
+      // takže by sme merali už roztiahnutý riadok.
+      const cs = getComputedStyle(el);
+      const n = Number(el.style.getPropertyValue("--slot-rows")) || 4;
+      const slot = (el.clientHeight - (n - 1) * (parseFloat(cs.rowGap) || 0)) / n;
+      if (!(slot > 0)) return;
+
+      const zmesti = () =>
+        ![...el.children].some((c) => c.getBoundingClientRect().height > slot + 1) &&
+        !orezane(el, ".desc") &&
+        !orezane(el, ".desc-en");
+
+      // 3) Až potom výška — písmo aj štítky ju ovplyvňujú. Keď niektorý ramen
+      //    prerastie svoj slot (stačí jeden dlhý názov na dva riadky), najprv
+      //    po kúskoch zmenšíme písmo a popisy ostanú CELÉ. Hustá sadzba, ktorá
+      //    popisy skracuje na 2 + 1 riadok s „…", je až posledná možnosť.
+      //    Predtým sa zapínala hneď — jeden dlhší názov tak skrátil popisy
+      //    všetkým ôsmim ramenom naraz.
+      let fit = 1;
+      for (;;) {
+        el.style.setProperty("--fit", String(fit));
+        sadzba();
+        if (zmesti()) return;
+        if (fit <= MIN_FIT) break;
+        fit = Math.round((fit - 0.02) * 100) / 100;
+      }
+
+      el.style.setProperty("--fit", "1");
+      sadzba();
+      el.classList.add("dense");
     };
     meraj();
     document.fonts?.ready.then(meraj).catch(() => {});
@@ -506,14 +538,20 @@ export default function Board({ initial }: { initial: MenuData }) {
     return () => clearInterval(id);
   }, []);
 
-  // pri zmene obsahu krajných stĺpcov sa prepočíta ich mierka
+  // Pri zmene obsahu sa sadzba prepočíta. Patria sem aj TEXTY: keď klient
+  // v ChoiceQR predĺži názov alebo popis, živé obnovenie musí dosku premerať,
+  // inak by nový text pretiekol do susedného slotu až do reštartu TV.
+  const texty = (d: Dish) =>
+    [d.name, d.nameEn, d.parts.join(","), d.partsEn.join(",")].join("/");
   const sig = (gs: Group[]) =>
-    gs.map((g) => g.name + ":" + g.dishes.map((d) => d.id).join(",")).join("|");
+    gs
+      .map((g) => g.name + ":" + g.dishes.map((d) => d.id + texty(d)).join(","))
+      .join("|");
   /* 8 ramenov -> 4+4, 7 -> 4+3, 6 -> 3+3, 5 -> 3+2 … presne ako to chce klient */
   const rows = Math.ceil((data.main?.dishes.length ?? 0) / 2) || 1;
   const mainRef = useDenseGrid(
     (data.main?.dishes ?? [])
-      .map((d) => `${d.id}${d.available ? "" : "!"}${d.labels.length}`)
+      .map((d) => `${d.id}${d.available ? "" : "!"}${d.labels.length}${texty(d)}`)
       .join(","),
   );
   const leftSig = sig(data.left);

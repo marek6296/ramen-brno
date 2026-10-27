@@ -945,3 +945,13 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
    veľkosť alebo by sa posledná položka odrezala. */
 .col--narrow .desc    { -webkit-line-clamp: var(--cz-lines, 4); }
 .col--narrow .desc-en { -webkit-line-clamp: var(--en-lines, 2); }
+
+/* ---- mierka stredného bloku (`--fit`) ----
+   Keď niektorý ramen prerastie svoj slot (napr. dlhý názov na dva riadky),
+   board.tsx najprv po krokoch zmenší písmo a popisy nechá CELÉ. Hustá sadzba
+   (`dense`) so skrátenými popismi príde na rad až pod hranicou MIN_FIT.
+   Anglický popis sa tu neškáluje — ten má vlastné meranie a spodok 1vh. */
+.list.twocol:not(.dense) .dish .name    { font-size: calc(var(--fs-dish) * var(--fit, 1)); }
+.list.twocol:not(.dense) .dish .price   { font-size: calc(var(--fs-price) * var(--fit, 1)); }
+.list.twocol:not(.dense) .dish .name-en { font-size: calc(var(--fs-dish-en) * var(--fit, 1)); }
+.list.twocol:not(.dense) .dish .desc    { font-size: calc(var(--fs-desc) * var(--fit, 1)); }
