@@ -102,17 +102,21 @@ function DishRow({
   d,
   currency,
   noPhoto,
+  style,
 }: {
   d: Dish;
   currency: string;
   /** krajné stĺpce sú úzke — fotky sú len v strednom ramen bloku */
   noPhoto?: boolean;
+  /** pozícia v mriežke ramenov */
+  style?: React.CSSProperties;
 }) {
   const out = !d.available;
   const showPhoto = !noPhoto && !!d.image;
   return (
     <article
       className={`dish${out ? " out" : ""}${showPhoto ? " has-photo" : ""}`}
+      style={style}
     >
       {showPhoto && (
         /* eslint-disable-next-line @next/next/no-img-element */
@@ -424,7 +428,7 @@ function useDenseGrid(signature: string) {
 
     /** anglický popis a štítky pri aktuálnej mierke `--fit` */
     const sadzba = () => {
-      // 1) Anglický popis čo najväčší, ale stále CELÝ na dva riadky.
+      // 1) Anglický popis čo najväčší, ale stále CELÝ (najviac 3 riadky).
       //    Nezvolíme veľkosť natvrdo: keď klient popis predĺži, doska sa
       //    sama stiahne, namiesto toho aby preklad odsekla.
       let v = MAX_DESC_EN;
@@ -462,25 +466,23 @@ function useDenseGrid(signature: string) {
     const meraj = () => {
       el.classList.remove("dense"); // vždy meriame v normálnom režime
 
-      // Výška slotu podľa toho istého vzorca ako v CSS (`--slot`). Z vypočítanej
-      // mriežky ju čítať nejde: riadok s vysokým jedlom sa natiahne (`minmax`),
-      // takže by sme merali už roztiahnutý riadok.
-      const cs = getComputedStyle(el);
-      const n = Number(el.style.getPropertyValue("--slot-rows")) || 4;
-      const slot = (el.clientHeight - (n - 1) * (parseFloat(cs.rowGap) || 0)) / n;
-      if (!(slot > 0)) return;
+      // Riadky mriežky sa riadia obsahom (viď globals.css), takže sa nepýtame,
+      // či sa jedlo zmestí do slotu, ale či sa celá mriežka zmestí do svojej
+      // výšky — vysoké jedlo si miesto požičia od riadkov s rezervou.
+      const zmesti = () => {
+        const spodok = el.getBoundingClientRect().bottom;
+        return (
+          ![...el.children].some((c) => c.getBoundingClientRect().bottom > spodok + 1) &&
+          !orezane(el, ".desc") &&
+          !orezane(el, ".desc-en")
+        );
+      };
 
-      const zmesti = () =>
-        ![...el.children].some((c) => c.getBoundingClientRect().height > slot + 1) &&
-        !orezane(el, ".desc") &&
-        !orezane(el, ".desc-en");
-
-      // 3) Až potom výška — písmo aj štítky ju ovplyvňujú. Keď niektorý ramen
-      //    prerastie svoj slot (stačí jeden dlhý názov na dva riadky), najprv
-      //    po kúskoch zmenšíme písmo a popisy ostanú CELÉ. Hustá sadzba, ktorá
-      //    popisy skracuje na 2 + 1 riadok s „…", je až posledná možnosť.
-      //    Predtým sa zapínala hneď — jeden dlhší názov tak skrátil popisy
-      //    všetkým ôsmim ramenom naraz.
+      // 3) Až potom výška — písmo aj štítky ju ovplyvňujú. Keď sa mriežka
+      //    nezmestí, najprv po kúskoch zmenšíme písmo a popisy ostanú CELÉ.
+      //    Hustá sadzba, ktorá popisy skracuje na 2 + 1 riadok s „…", je až
+      //    posledná možnosť. Predtým sa zapínala hneď — jeden dlhší názov tak
+      //    skrátil popisy všetkým ôsmim ramenom naraz.
       let fit = 1;
       for (;;) {
         el.style.setProperty("--fit", String(fit));
@@ -634,8 +636,20 @@ export default function Board({ initial }: { initial: MenuData }) {
                   } as React.CSSProperties
                 }
               >
-                {data.main.dishes.map((d) => (
-                  <DishRow key={d.id} d={d} currency={c} />
+                {/* Pozícia je daná napevno: prvých `rows` jedál ide do ľavej
+                    polovice, zvyšok do pravej. Mriežka má vždy `--slot-rows`
+                    riadkov, takže pri menšom počte jedál ostanú prázdne
+                    riadky dole a jedlá sa nepohnú. */}
+                {data.main.dishes.map((d, i) => (
+                  <DishRow
+                    key={d.id}
+                    d={d}
+                    currency={c}
+                    style={{
+                      gridColumn: i < rows ? 1 : 2,
+                      gridRow: (i % rows) + 1,
+                    }}
+                  />
                 ))}
               </div>
             </>
