@@ -110,6 +110,21 @@ export function skontrolujStore(
       expect((await store.getScreen(s.id))?.items).toEqual(po.items);
     });
 
+    it("nová obrazovka má menu bez fotiek a dajú sa zapnúť", async () => {
+      const s = await store.createScreen({
+        name: "A",
+        slug: "a",
+        orientation: "landscape",
+      });
+      expect(s.menuPhotos).toBe(false);
+      const po = await store.updateScreen(s.id, { menuPhotos: true });
+      expect(po.menuPhotos).toBe(true);
+      expect((await store.getScreen(s.id))?.menuPhotos).toBe(true);
+      // iná úprava fotky nevypne
+      const potom = await store.updateScreen(s.id, { name: "B" });
+      expect(potom.menuPhotos).toBe(true);
+    });
+
     it("úprava neexistujúcej obrazovky padne", async () => {
       await expect(store.updateScreen("nieje", { name: "X" })).rejects.toThrow(
         NotFoundError,

@@ -38,6 +38,11 @@ type Riadok = {
    * neprestal ukazovať.
    */
   rotation?: Rotation | null;
+  /**
+   * Stĺpec z migrácie `supabase/06-fotky-v-menu.sql`. Rovnako ako `rotation`:
+   * kým migrácia nebeží, v odpovedi nie je a menu je bez fotiek.
+   */
+  menu_photos?: boolean | null;
   items: PlaylistItem[] | null;
   updated_at: number | string;
 };
@@ -80,6 +85,8 @@ function naScreen(r: Riadok): Screen {
     rotation: OTOCENIA.includes(r.rotation as Rotation)
       ? (r.rotation as Rotation)
       : "none",
+    // chýbajúci stĺpec = nová predvolená doska bez fotiek
+    menuPhotos: r.menu_photos === true,
     items: (r.items ?? []).map(dopln),
     updatedAt: Number(r.updated_at),
   };
@@ -236,6 +243,7 @@ export function createSupabaseStore(url: string, serviceKey: string): Store {
       // `rotation` je bežný stĺpec, nie súčasť `items` — jsonb je sled
       // položiek, otočenie je vlastnosť obrazovky.
       if (patch.rotation !== undefined) telo.rotation = patch.rotation;
+      if (patch.menuPhotos !== undefined) telo.menu_photos = patch.menuPhotos;
       if (patch.items !== undefined) telo.items = patch.items;
       // `updatedAt` sa ZÁMERNE neposiela — o `updated_at` sa stará trigger
       // `screens_bump_updated_at`, ktorý ho pri každom UPDATE zvýši.
@@ -246,32 +254,33 @@ export function createSupabaseStore(url: string, serviceKey: string): Store {
       // PostgREST neodmietne požiadavku s prázdnym telom.
       if (Object.keys(telo).length === 0) telo.id = id;
 
+      // Chýbajúci neskorší stĺpec (migrácia ešte nebežala) sa vynechá a skúsi
+      // sa to znova — ostatné zmeny sa uložia. Pokusov je toľko, koľko je
+      // takých stĺpcov, keby chýbali oba naraz.
       let riadky: Riadok[];
-      try {
-        riadky = await volaj(`?select=*&id=eq.${encodeURIComponent(id)}`, {
-          method: "PATCH",
-          headers: { Prefer: "return=representation" },
-          body: JSON.stringify(telo),
-        });
-      } catch (e) {
-        if (chybaStlpecRotation(e)) {
-          console.warn(
-            "Supabase: stĺpec `rotation` neexistuje — spusti supabase/03-rotacia.sql. " +
-              "Zmena sa zatiaľ uloží bez otočenia.",
-          );
-          delete telo.rotation;
-          if (Object.keys(telo).length === 0) telo.id = id;
+      for (;;) {
+        try {
           riadky = await volaj(`?select=*&id=eq.${encodeURIComponent(id)}`, {
             method: "PATCH",
             headers: { Prefer: "return=representation" },
             body: JSON.stringify(telo),
           });
-          if (!riadky[0]) throw new NotFoundError();
-          return naScreen(riadky[0]);
+          break;
+        } catch (e) {
+          const stlpec = chybajuciStlpec(e);
+          if (stlpec && stlpec in telo) {
+            console.warn(
+              `Supabase: stĺpec \`${stlpec}\` neexistuje — spusti ${MIGRACIA[stlpec]}. ` +
+                "Zmena sa zatiaľ uloží bez neho.",
+            );
+            delete telo[stlpec];
+            if (Object.keys(telo).length === 0) telo.id = id;
+            continue;
+          }
+          if (jeNeznameId(e)) throw new NotFoundError();
+          if (jeDuplicita(e)) throw new DuplicateSlugError(patch.slug ?? "");
+          throw e;
         }
-        if (jeNeznameId(e)) throw new NotFoundError();
-        if (jeDuplicita(e)) throw new DuplicateSlugError(patch.slug ?? "");
-        throw e;
       }
 
       // PATCH nad neexistujúcim riadkom nie je chyba — vráti prázdny zoznam.
@@ -289,6 +298,24 @@ export function createSupabaseStore(url: string, serviceKey: string): Store {
       }
     },
   };
+}
+
+/**
+ * Stĺpce, ktoré pribudli neskôr, a migrácia, ktorá ich pridá. Zápis bez
+ * nich nesmie zlyhať celý — viď `chybaStlpecRotation`.
+ */
+const MIGRACIA = {
+  rotation: "supabase/03-rotacia.sql",
+  menu_photos: "supabase/06-fotky-v-menu.sql",
+} as const;
+
+/** ktorý z neskôr pridaných stĺpcov v databáze chýba, ak je to tá chyba */
+function chybajuciStlpec(e: unknown): keyof typeof MIGRACIA | null {
+  const text = String(e);
+  if (!/PGRST204|42703/.test(text)) return null;
+  if (/menu_photos/i.test(text)) return "menu_photos";
+  if (/rotation/i.test(text)) return "rotation";
+  return null;
 }
 
 /**

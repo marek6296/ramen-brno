@@ -313,7 +313,7 @@ export default function Player({
                 screen.orientation === "portrait" ? (
                   <BoardPortrait initial={menu} />
                 ) : (
-                  <Board initial={menu} />
+                  <Board initial={menu} fotky={screen.menuPhotos} />
                 )
               ) : (
                 <p className="prazdne">Menu se načítá…</p>
