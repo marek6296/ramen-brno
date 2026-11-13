@@ -1034,19 +1034,24 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
   font-size: calc(0.92vh * var(--tag-fit, 1) * (1 + (var(--fit, 1) - 1) * 0.5));
 }
 
-/* Kalórie s alergénmi navrch, štítky pod ne — v každom riadku mriežky
-   na rovnakej výške vľavo aj vpravo (`zarovnajRiadky` v board.tsx).
-   Mimo tohto režimu obal neexistuje (`display: contents`). */
+/* Kalórie s alergénmi a za nimi štítky v jednom riadku — v každom riadku
+   mriežky na rovnakej výške vľavo aj vpravo (`zarovnajRiadky` v board.tsx).
+   Štítky sú samostatné prvky riadku (ich obal má `display: contents`), takže
+   koľko sa ich vedľa alergénov zmestí, toľko tam ostane, a zvyšok sa
+   zalomí na ďalší riadok. Mimo tohto režimu obal neexistuje. */
 .meta-riadok { display: contents; }
 .board--bez-fotiek .list.twocol .meta-riadok {
   grid-column: 1 / -1;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: calc(1.2vh * var(--fit, 1));
+  row-gap: calc(0.4vh * var(--fit, 1));
+  margin-top: calc(0.4vh * var(--fit, 1));
   min-width: 0;
 }
-.board--bez-fotiek .list.twocol .meta-riadok .meta { max-width: 100%; }
-.board--bez-fotiek .list.twocol .meta-riadok .meta--alg { order: -1; }
+.board--bez-fotiek .list.twocol .meta-riadok .meta:not(.meta--alg) { display: contents; }
+.board--bez-fotiek .list.twocol .meta-riadok .meta--alg { order: -1; margin-top: 0; }
 
 /* Krajné stĺpce — jedlá. Mierku obmedzuje board.tsx tak, aby chuťovky
    nikdy neboli väčšie než rameny v strede. */
