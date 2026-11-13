@@ -1005,12 +1005,12 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
    všetkých troch stĺpcoch PEVNE rovnako vysoký, aby čiary pod nadpismi
    ležali na jednej línii. Predtým mali len spoločnú minimálnu výšku a väčší
    nadpis RAMEN ju potichu prekročil — jeho čiara bola o kúsok nižšie. */
-.board--bez-fotiek .col { padding-top: 0.9vh; }
+.board--bez-fotiek .col { padding-top: 0.6vh; gap: 0.6vh; }
 .board--bez-fotiek .col > .sec:first-child {
-  height: 3.9vh;
+  height: 3.2vh;
   min-height: 0;
   align-items: flex-end;
-  padding-bottom: 0.45vh;
+  padding-bottom: 0.3vh;
   overflow: hidden;
 }
 .board--bez-fotiek .sec--center h2 { font-size: 2.7vh; }
