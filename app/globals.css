@@ -996,10 +996,11 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
    má vlastné meranie. S fotkami (prepínač v adminovi) sa nič z tohto
    nepoužije a doska vyzerá presne ako predtým. */
 
-/* Hlavička nižšia — každý ušetrený riadok ide jedlám. */
-.board--bez-fotiek .top { padding: 0.5vh 3vh 0.4vh; }
-.board--bez-fotiek .brand .logo { height: 6.4vh; }
-.board--bez-fotiek .menu-title { font-size: 3.8vh; }
+/* Hlavička nižšia — každý ušetrený riadok ide jedlám. Nápis MENU ostáva
+   v plnej veľkosti; výšku hlavičky určovalo logo a voľno nad a pod MENU. */
+.board--bez-fotiek .top { padding: 0.35vh 3vh 0.3vh; }
+.board--bez-fotiek .brand .logo { height: 5.2vh; }
+.board--bez-fotiek .menu-title { font-size: 3.8vh; line-height: 1; }
 
 /* Riadok s nadpismi stĺpcov (CHUŤOVKY · RAMEN · DĚTSKÉ JÍDLO) nižší a vo
    všetkých troch stĺpcoch PEVNE rovnako vysoký, aby čiary pod nadpismi
