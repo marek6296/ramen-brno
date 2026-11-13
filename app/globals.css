@@ -1115,3 +1115,10 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
 .board--bez-fotiek .dish .name-en { opacity: 1; color: var(--ink-2); }
 .board--bez-fotiek .dish .meta--alg { color: var(--ink-2); }
 .board--bez-fotiek .tag__en { opacity: 0.8; }
+
+/* Český popis ramenu má bez fotiek NAJVIAC 3 riadky. Štvrtý riadok jedného
+   jedla rozbíjal súmernosť riadku mriežky a pri dlhšom popise robil
+   problémy. Keď sa niektorý popis do troch riadkov nezmestí, board.tsx
+   zmenší písmo celej doske (orezaný popis sa ráta ako nezmestený), takže
+   nikdy nevznikne „…". */
+.board--bez-fotiek .list.twocol:not(.dense) .desc { -webkit-line-clamp: 3; }
