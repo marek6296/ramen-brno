@@ -40,6 +40,12 @@ export async function PATCH(req: Request, { params }: Ctx) {
         : "none";
   }
 
+  // Fotky v menu — rovnako ako otočenie sa nepatchuje, keď pole nepríde,
+  // a berie sa len skutočná pravdivostná hodnota.
+  if (typeof body.menuPhotos === "boolean") {
+    patch.menuPhotos = body.menuPhotos;
+  }
+
   if (Array.isArray(body.items)) {
     patch.items = body.items.map(
       (it: PlaylistItem): PlaylistItem => ({

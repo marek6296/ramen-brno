@@ -24,8 +24,15 @@ const OTOCENIA: Rotation[] = ["none", "left", "right"];
  * správanie — stránka sa neotáča.
  */
 function doplnOtocenie(s: Screen): Screen {
-  if (OTOCENIA.includes(s?.rotation)) return s;
-  return { ...s, rotation: "none" };
+  // To isté pre fotky v menu: staré obrazovky pole nemajú a chýbajúce
+  // znamená novú predvolenú dosku bez fotiek.
+  const menuPhotos = s?.menuPhotos === true;
+  if (OTOCENIA.includes(s?.rotation) && s?.menuPhotos === menuPhotos) return s;
+  return {
+    ...s,
+    rotation: OTOCENIA.includes(s?.rotation) ? s.rotation : "none",
+    menuPhotos,
+  };
 }
 
 /**
@@ -130,6 +137,8 @@ export function createLocalStore(dir: string): Store {
         slug: input.slug,
         orientation: input.orientation,
         rotation: input.rotation ?? "none",
+        // nová obrazovka má menu bez fotiek; zapína sa v adminovi
+        menuPhotos: false,
         items: [],
         updatedAt: Date.now(),
       };

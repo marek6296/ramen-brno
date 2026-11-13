@@ -84,6 +84,12 @@ export type Screen = {
    * že by televízor otáčanie vedel sám.
    */
   rotation: Rotation;
+  /**
+   * Fotky jedál v menu na šírku. Klient sa rozhodol pre dosku bez nich
+   * (písmo je väčšie), takže predvolene `false`; s fotkami ostáva ako
+   * možnosť. Doska na výšku fotky nemá nikdy.
+   */
+  menuPhotos: boolean;
   items: PlaylistItem[];
   /** milisekundy; podľa nej TV pozná, že sa niečo zmenilo */
   updatedAt: number;
@@ -102,6 +108,7 @@ export type ScreenPatch = Partial<{
   slug: string;
   orientation: Orientation;
   rotation: Rotation;
+  menuPhotos: boolean;
   items: PlaylistItem[];
 }>;
 

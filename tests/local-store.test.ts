@@ -98,5 +98,7 @@ describe("lokálne úložisko (súborové zvláštnosti)", () => {
       "fade",
     ]);
     expect(s?.items.map((i) => i.repeats)).toEqual([1, 1, 1, 1]);
+    // obrazovka spred zavedenia prepínača fotiek ukazuje menu bez nich
+    expect(s?.menuPhotos).toBe(false);
   });
 });

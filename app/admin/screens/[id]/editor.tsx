@@ -64,8 +64,9 @@ const odtlacok = (
   n: string,
   o: Orientation,
   r: Rotation,
+  f: boolean,
   it: PlaylistItem[],
-) => JSON.stringify({ n, o, r, it });
+) => JSON.stringify({ n, o, r, f, it });
 
 /** stav ťahania položky sledu prstom alebo myšou */
 type Tah = {
@@ -103,17 +104,25 @@ export default function Editor({
   const [name, setName] = useState(screen.name);
   const [orientation, setOrientation] = useState<Orientation>(screen.orientation);
   const [rotation, setRotation] = useState<Rotation>(screen.rotation);
+  const [menuPhotos, setMenuPhotos] = useState(screen.menuPhotos);
   const [items, setItems] = useState<PlaylistItem[]>(screen.items);
   const [slug, setSlug] = useState(screen.slug);
 
   /* Ukladanie: `ulozeny` je odtlačok toho, čo naozaj leží na serveri. */
   const [ulozeny, setUlozeny] = useState(() =>
-    odtlacok(screen.name, screen.orientation, screen.rotation, screen.items),
+    odtlacok(
+      screen.name,
+      screen.orientation,
+      screen.rotation,
+      screen.menuPhotos,
+      screen.items,
+    ),
   );
   const [uklada, setUklada] = useState(false);
   const [uloziloSa, setUloziloSa] = useState(false);
   const [chybaUloz, setChybaUloz] = useState("");
-  const neulozene = odtlacok(name, orientation, rotation, items) !== ulozeny;
+  const neulozene =
+    odtlacok(name, orientation, rotation, menuPhotos, items) !== ulozeny;
 
   /* Zoznam médií prišiel zo servera, ale po nahratí alebo zmazaní si ho
      ťaháme znova z `/api/admin/media` — bez toho by sa nový súbor ukázal až
@@ -336,7 +345,7 @@ export default function Editor({
   async function uloz() {
     setUklada(true);
     setChybaUloz("");
-    const posielane = { name, orientation, rotation, items };
+    const posielane = { name, orientation, rotation, menuPhotos, items };
     try {
       const r = await fetch(`/api/admin/screens/${screen.id}`, {
         method: "PATCH",
@@ -354,6 +363,7 @@ export default function Editor({
           posielane.name,
           posielane.orientation,
           posielane.rotation,
+          posielane.menuPhotos,
           posielane.items,
         ),
       );
@@ -442,6 +452,23 @@ export default function Editor({
             </label>
           )}
         </div>
+        {/* Fotky má len doska na šírku — tá na výšku je bez nich vždy. */}
+        {orientation === "landscape" && (
+          <label className="pole pole--zaskrtavacie" style={{ marginTop: "0.9rem" }}>
+            <input
+              type="checkbox"
+              checked={menuPhotos}
+              onChange={(e) => setMenuPhotos(e.target.checked)}
+            />
+            <span>
+              Fotky jedál v menu
+              <span className="pole__rada">
+                Bez fotiek má menu väčšie písmo a lepšie sa číta z diaľky.
+                S fotkami je písmo menšie, lebo fotky zaberú miesto.
+              </span>
+            </span>
+          </label>
+        )}
         <p className="adresa">
           <span className="adresa__text">/tv/{slug}</span>
           <span className="ticho">adresa sa premenovaním nemení</span>

@@ -985,3 +985,66 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
 .list.twocol {
   grid-template-rows: repeat(var(--slot-rows, 4), minmax(min-content, 1fr));
 }
+
+/* ================= doska BEZ FOTIEK (predvolená) =================
+   Klient sa rozhodol fotky jedál vypustiť: na TV bolo veľa vecí na malom
+   mieste a texty sa z diaľky nedali čítať. Uvoľnené miesto ide na písmo.
+
+   Texty jedla sa násobia mierkou `--fit`. Tú nastavuje board.tsx: začne
+   vysoko a zmenšuje ju, kým sa všetko nezmestí — písmo je teda vždy
+   najväčšie, aké sa na plochu vojde. Stredný blok aj každý krajný stĺpec
+   má vlastné meranie. S fotkami (prepínač v adminovi) sa nič z tohto
+   nepoužije a doska vyzerá presne ako predtým. */
+
+/* Hlavička o kúsok nižšia — každý ušetrený riadok ide jedlám. */
+.board--bez-fotiek .top { padding: 0.7vh 3vh 0.6vh; }
+.board--bez-fotiek .brand .logo { height: 7.6vh; }
+.board--bez-fotiek .menu-title { font-size: 4.4vh; }
+
+/* Stredný blok: zväčšuje sa to, čo ľudia čítajú — názov, cena a český
+   popis (pravidlo `.list.twocol:not(.dense)` vyššie). Plocha je pevná
+   a textu je veľa; keby rástlo všetko, vyšlo by to sotva o pár percent
+   väčšie. Preklad, štítky a alergény ostávajú v pôvodnej veľkosti. */
+.board--bez-fotiek .list.twocol:not(.dense) .desc { margin-top: calc(0.4vh * var(--fit, 1)); }
+
+/* Kalórie a alergény idú na riadok so štítkami, keď sa tam zmestia —
+   jedlo je tak o riadok nižšie. Keď nie, board.tsx dá jedlu triedu
+   `dish--alg-zvlast` a alergény ostanú na vlastnom riadku ako predtým.
+   Mimo tohto režimu obal neexistuje (`display: contents`). */
+.meta-riadok { display: contents; }
+.board--bez-fotiek .list.twocol .meta-riadok {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 1.2vh;
+  min-width: 0;
+}
+.board--bez-fotiek .list.twocol .meta-riadok .meta { min-width: 0; flex: 0 1 auto; }
+.board--bez-fotiek .list.twocol .meta-riadok .meta--alg { flex: none; white-space: nowrap; }
+.board--bez-fotiek .list.twocol .dish--alg-zvlast .meta-riadok {
+  flex-direction: column;
+  align-items: flex-start;
+}
+/* jedlo bez štítkov: alergény zostanú vľavo, nie odsunuté doprava */
+.board--bez-fotiek .list.twocol .meta-riadok .meta--alg:first-child { margin-right: auto; }
+
+/* Krajné stĺpce — jedlá. Mierku obmedzuje board.tsx tak, aby chuťovky
+   nikdy neboli väčšie než rameny v strede. */
+.board--bez-fotiek .col--narrow .dish .name,
+.board--bez-fotiek .col--narrow .dish .price { font-size: calc(1.8vh * var(--fit, 1)); }
+.board--bez-fotiek .col--narrow .dish .name-en { font-size: calc(1.2vh * var(--fit, 1)); }
+.board--bez-fotiek .col--narrow .desc    { font-size: calc(1.36vh * var(--fit, 1)); }
+.board--bez-fotiek .col--narrow .desc-en { font-size: calc(1.2vh * var(--fit, 1)); }
+.board--bez-fotiek .col--narrow .meta    { font-size: calc(var(--fs-meta) * var(--fit, 1)); }
+.board--bez-fotiek .col--narrow .tag {
+  font-size: calc(0.82vh * var(--fit, 1));
+  padding: calc(0.18vh * var(--fit, 1)) calc(0.5vh * var(--fit, 1));
+}
+
+/* Krajné stĺpce — voľba nudlí a prídavky */
+.board--bez-fotiek .col--narrow .extras h3     { font-size: calc(1.7vh * var(--fit, 1)); }
+.board--bez-fotiek .col--narrow .extras .en-h  { font-size: calc(0.95vh * var(--fit, 1)); }
+.board--bez-fotiek .col--narrow .extras li     { font-size: calc(1.2vh * var(--fit, 1)); }
+.board--bez-fotiek .col--narrow .extras .it-en { font-size: calc(0.88vh * var(--fit, 1)); }
+.board--bez-fotiek .col--narrow .it-en__incl   { font-size: calc(0.85vh * var(--fit, 1)); }

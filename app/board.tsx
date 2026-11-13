@@ -136,19 +136,24 @@ function DishRow({
           Vypredané tu ZÁMERNE nemá vlastný štítok — pridával štvrtý prvok,
           riadok sa zalomil a jedlo prerástlo svoj slot cez susedné. Že je
           vypredané, povie prečiarknutý názov aj cena, stlmenie a šedá fotka. */}
-      {d.labels.length > 0 && (
-        <div className="meta">
-          <Tags labels={d.labels} />
-        </div>
-      )}
-      {/* 2. riadok: kalórie a alergény vždy spolu a vždy zvlášť — inak sa raz
-          zalomia a raz nie, podľa toho, koľko štítkov je nad nimi */}
-      {(d.kcal || d.allergens.length > 0) && (
-        <div className="meta meta--alg">
-          {d.kcal ? <span>{d.kcal} kcal</span> : null}
-          {d.allergens.length ? <span>alerg. {d.allergens.join(", ")}</span> : null}
-        </div>
-      )}
+      {/* Obal oboch riadkov. S fotkami má `display: contents` a riadky sú
+          v mriežke jedla ako predtým; bez fotiek ich v strede postaví vedľa
+          seba, aby jedlo bolo o riadok nižšie (viď globals.css). */}
+      <div className="meta-riadok">
+        {d.labels.length > 0 && (
+          <div className="meta">
+            <Tags labels={d.labels} />
+          </div>
+        )}
+        {/* 2. riadok: kalórie a alergény vždy spolu a vždy zvlášť — inak sa raz
+            zalomia a raz nie, podľa toho, koľko štítkov je nad nimi */}
+        {(d.kcal || d.allergens.length > 0) && (
+          <div className="meta meta--alg">
+            {d.kcal ? <span>{d.kcal} kcal</span> : null}
+            {d.allergens.length ? <span>alerg. {d.allergens.join(", ")}</span> : null}
+          </div>
+        )}
+      </div>
     </article>
   );
 }
@@ -337,6 +342,12 @@ const UROVNE = [
   { cz: 3, en: 2, spodok: 0.78 },
   { cz: 2, en: 1, spodok: 0.55 },
 ];
+/**
+ * Najprv sa skúša s riadkom navyše. V krajných stĺpcoch býva voľné miesto
+ * a dlhší preklad (napr. Karaage) by sa inak odsekol na dvoch riadkoch.
+ * Bez fotiek je písmo väčšie a riadok navyše potrebuje ešte častejšie.
+ */
+const UROVEN_NAVYSE = { cz: 5, en: 3, spodok: 0.86 };
 // Pozn.: do úzkeho stĺpca sa takto zmestí až šesť položiek (dohodnuté maximum
 // klienta). Osem sa doň nevojde ani po zmenšení na 40 % — vtedy už nejde
 // o sadzbu, ale o to, že sa doň dostala nesprávna kategória. Rieši sa to
@@ -345,10 +356,17 @@ const UROVNE = [
 function FitColumn({
   children,
   signature,
+  maxFit = 1,
 }: {
   children: React.ReactNode;
   /** zmena tohto reťazca spustí prepočet (počet + názvy položiek) */
   signature: string;
+  /**
+   * Odkiaľ začať. Bez fotiek je na doske miesto navyše, tak sa písmo smie
+   * zväčšiť nad 1 — mierku `--fit` v krajných stĺpcoch používa len CSS
+   * režimu bez fotiek, s fotkami ostáva doska presne ako bola.
+   */
+  maxFit?: number;
 }) {
   const ref = useRef<HTMLElement>(null);
 
@@ -365,16 +383,27 @@ function FitColumn({
       // je na TV lepší než drobné písmo — a nadovšetko platí, že sa musia
       // zmestiť VŠETKY položky. Predtým sa zmenšovanie zastavilo na hranici
       // a šiesta chuťovka sa jednoducho odrezala.
-      for (const u of UROVNE) {
+      //
+      // Bez fotiek sa písmo zväčšuje nad 1, a väčší popis sa ľahko nezmestí
+      // do svojho počtu riadkov a dostane „…". Vtedy sa ráta ako nezmestený
+      // aj orezaný popis — radšej o kúsok menšie písmo než useknutý text.
+      // Na poslednej úrovni (2 + 1 riadok) je skracovanie zámer, tam nie.
+      const urovne = [UROVEN_NAVYSE, ...UROVNE];
+      for (const u of urovne) {
         el.style.setProperty("--cz-lines", String(u.cz));
         el.style.setProperty("--en-lines", String(u.en));
-        el.style.setProperty("--fit", "1");
-        let s = 1;
-        while (s > u.spodok && pretecie()) {
+        const strazOrez = maxFit > 1 && u !== urovne[urovne.length - 1];
+        const zle = () =>
+          pretecie() ||
+          (strazOrez && (orezane(el, ".desc") || orezane(el, ".desc-en"))) ||
+          (maxFit > 1 && zalomeneCeny(el));
+        let s = maxFit;
+        el.style.setProperty("--fit", String(s));
+        while (s > u.spodok && zle()) {
           s = Math.round((s - 0.02) * 1000) / 1000;
           el.style.setProperty("--fit", String(s));
         }
-        if (!pretecie()) return;
+        if (!zle()) return;
       }
     };
 
@@ -383,7 +412,7 @@ function FitColumn({
     document.fonts?.ready.then(fit).catch(() => {});
     window.addEventListener("resize", fit);
     return () => window.removeEventListener("resize", fit);
-  }, [signature]);
+  }, [signature, maxFit]);
 
   return (
     <section ref={ref} className="col col--narrow">
@@ -413,6 +442,26 @@ const MIN_TAG_FIT = 0.6;
  * stĺpcoch, takže je to stále čitateľné z diaľky.
  */
 const MIN_FIT = 0.86;
+/**
+ * Bez fotiek: najväčšia mierka písma, od ktorej sa začína. Doska ju zmenšuje,
+ * kým sa všetko nezmestí, takže pri menšom počte jedál a kratších popisoch
+ * je písmo väčšie, pri dlhších menšie — vždy čo najväčšie, aké sa zmestí.
+ */
+const MAX_FIT_BEZ_FOTIEK = 1.5;
+/** to isté pre krajné stĺpce (chuťovky, dětské jídlo, prídavky) */
+const MAX_FIT_KRAJ_BEZ_FOTIEK = 1.5;
+
+/**
+ * Prídavok, ktorému cena zliezla pod názov. Riadok prídavku sa smie lámať
+ * (anglický názov ide na druhý riadok), takže to nie je pretečenie — pri
+ * väčšom písme by sa ale cena odtrhla od bodkovanej linky.
+ */
+const zalomeneCeny = (el: HTMLElement) =>
+  [...el.querySelectorAll<HTMLElement>(".extras li")].some((li) => {
+    const nazov = li.firstElementChild as HTMLElement | null;
+    const cena = li.querySelector<HTMLElement>(".p");
+    return !!nazov && !!cena && cena.offsetTop > nazov.offsetTop + 2;
+  });
 
 /** prvok, ktorému `-webkit-line-clamp` odsekol koniec textu („…") */
 const orezane = (el: HTMLElement, sel: string) =>
@@ -420,8 +469,15 @@ const orezane = (el: HTMLElement, sel: string) =>
     (e) => e.scrollHeight > e.clientHeight + 1,
   );
 
-function useDenseGrid(signature: string) {
+function useDenseGrid(
+  signature: string,
+  maxFit = 1,
+  /** dostane výslednú mierku stredného bloku (v hustej sadzbe 1) */
+  naFit?: (fit: number) => void,
+) {
   const ref = useRef<HTMLDivElement>(null);
+  const naFitRef = useRef(naFit);
+  naFitRef.current = naFit;
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -454,6 +510,14 @@ function useDenseGrid(signature: string) {
         };
 
         m.style.flexWrap = "";
+        m.style.removeProperty("--tag-fit");
+
+        // Bez fotiek idú kalórie a alergény na riadok so štítkami (CSS).
+        // Keď sa štítky vedľa nich nezmestia v plnej veľkosti, vrátia sa
+        // alergény na vlastný riadok — štítky sa kvôli nim nezmenšujú.
+        const jedlo = m.closest(".dish");
+        jedlo?.classList.remove("dish--alg-zvlast");
+        if (pretecie()) jedlo?.classList.add("dish--alg-zvlast");
 
         // Preklad ostáva vždy — zmenší sa celý štítok aj s ním.
         zmensuj(MIN_TAG_FIT);
@@ -483,24 +547,45 @@ function useDenseGrid(signature: string) {
       //    Hustá sadzba, ktorá popisy skracuje na 2 + 1 riadok s „…", je až
       //    posledná možnosť. Predtým sa zapínala hneď — jeden dlhší názov tak
       //    skrátil popisy všetkým ôsmim ramenom naraz.
-      let fit = 1;
-      for (;;) {
-        el.style.setProperty("--fit", String(fit));
+      //
+      //    Hľadá sa hrubo (po 0,1) a potom jemne nahor (po 0,02) — bez fotiek
+      //    sa začína na 1,5 a krok po kroku by to bolo vyše 30 premeraní
+      //    celej dosky, čo by slabší procesor televízora citeľne zdržalo.
+      const r2 = (n: number) => Math.round(n * 100) / 100;
+      const skus = (f: number) => {
+        el.style.setProperty("--fit", String(f));
         sadzba();
-        if (zmesti()) return;
-        if (fit <= MIN_FIT) break;
-        fit = Math.round((fit - 0.02) * 100) / 100;
+        return zmesti();
+      };
+      let dobra: number | null = null;
+      for (let f = maxFit; f > MIN_FIT; f = r2(f - 0.1)) {
+        if (skus(f)) {
+          dobra = f;
+          break;
+        }
+      }
+      if (dobra === null && skus(MIN_FIT)) dobra = MIN_FIT;
+      if (dobra !== null) {
+        let najlepsia = dobra;
+        for (let f = r2(dobra + 0.02); f < dobra + 0.1 && f <= maxFit; f = r2(f + 0.02)) {
+          if (!skus(f)) break;
+          najlepsia = f;
+        }
+        if (najlepsia !== dobra || !zmesti()) skus(najlepsia);
+        naFitRef.current?.(najlepsia);
+        return;
       }
 
       el.style.setProperty("--fit", "1");
       sadzba();
       el.classList.add("dense");
+      naFitRef.current?.(1);
     };
     meraj();
     document.fonts?.ready.then(meraj).catch(() => {});
     window.addEventListener("resize", meraj);
     return () => window.removeEventListener("resize", meraj);
-  }, [signature]);
+  }, [signature, maxFit]);
   return ref;
 }
 
@@ -523,8 +608,21 @@ function useIdleCursor() {
 
 /* ---------- doska ---------- */
 
-export default function Board({ initial }: { initial: MenuData }) {
+export default function Board({
+  initial,
+  fotky = false,
+}: {
+  initial: MenuData;
+  /**
+   * Fotky jedál v strednom bloku. Klient sa rozhodol pre dosku bez nich —
+   * texty boli na TV primalé — takže predvolene sú vypnuté a uvoľnené miesto
+   * ide na väčšie písmo. Zapnúť sa dajú v adminovi pri obrazovke.
+   */
+  fotky?: boolean;
+}) {
   const [data, setData] = useState<MenuData>(initial);
+  /** mierka písma, na ktorej sa ustálil stredný blok */
+  const [fitStred, setFitStred] = useState(1);
   useIdleCursor();
 
   // živé dáta: refresh každých 5 minút, ticho, bez bliknutia
@@ -554,8 +652,17 @@ export default function Board({ initial }: { initial: MenuData }) {
   const mainRef = useDenseGrid(
     (data.main?.dishes ?? [])
       .map((d) => `${d.id}${d.available ? "" : "!"}${d.labels.length}${texty(d)}`)
-      .join(","),
+      .join(",") + (fotky ? "|fotky" : ""),
+    fotky ? 1 : MAX_FIT_BEZ_FOTIEK,
+    setFitStred,
   );
+  // Chuťovky a dětské jídlo nesmú byť väčšie než rameny — tie sú to hlavné.
+  // Krajné stĺpce majú základné písmo menšie v pomere ~1 : 1,19 (názov
+  // 1,8 vs 2,15vh, popis 1,36 vs 1,62vh), takže pri tejto hranici vyjdú
+  // najviac rovnako veľké ako stred.
+  const krajMax = fotky
+    ? 1
+    : Math.min(MAX_FIT_KRAJ_BEZ_FOTIEK, Math.round(fitStred * 1.19 * 100) / 100);
   const leftSig = sig(data.left);
   const rightSig =
     sig(data.right) +
@@ -566,7 +673,7 @@ export default function Board({ initial }: { initial: MenuData }) {
   const bg = data.place.background;
 
   return (
-    <div className="board">
+    <div className={`board${fotky ? "" : " board--bez-fotiek"}`}>
       {bg && (
         <div className="board__bg" style={{ backgroundImage: `url(${bg})` }} />
       )}
@@ -598,7 +705,7 @@ export default function Board({ initial }: { initial: MenuData }) {
       <main className="cols">
         {/* 1 — ľavý krajný stĺpec: kategórie z ChoiceQR.
                Sám sa zmenší, keď klient pridá ďalšie chuťovky. */}
-        <FitColumn signature={leftSig}>
+        <FitColumn signature={leftSig} maxFit={krajMax}>
           {data.left.map((g, i) => (
             <CategoryBlock key={g.id} group={g} currency={c} sub={i > 0} />
           ))}
@@ -645,6 +752,7 @@ export default function Board({ initial }: { initial: MenuData }) {
                     key={d.id}
                     d={d}
                     currency={c}
+                    noPhoto={!fotky}
                     style={{
                       gridColumn: i < rows ? 1 : 2,
                       gridRow: (i % rows) + 1,
@@ -657,7 +765,7 @@ export default function Board({ initial }: { initial: MenuData }) {
         </section>
 
         {/* 4 — pravý krajný stĺpec + přídavky dole (tiež sa prispôsobí) */}
-        <FitColumn signature={rightSig}>
+        <FitColumn signature={rightSig} maxFit={krajMax}>
           {data.right.map((g, i) => (
             <CategoryBlock key={g.id} group={g} currency={c} sub={i > 0} />
           ))}
