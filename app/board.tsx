@@ -626,7 +626,7 @@ function useDenseGrid(
       //    posledná možnosť. Predtým sa zapínala hneď — jeden dlhší názov tak
       //    skrátil popisy všetkým ôsmim ramenom naraz.
       //
-      //    Hľadá sa hrubo (po 0,1) a potom jemne nahor (po 0,02) — bez fotiek
+      //    Hľadá sa hrubo (po 0,1) a potom jemne nahor (po 0,01) — bez fotiek
       //    sa začína na 1,5 a krok po kroku by to bolo vyše 30 premeraní
       //    celej dosky, čo by slabší procesor televízora citeľne zdržalo.
       const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -645,7 +645,7 @@ function useDenseGrid(
       if (dobra === null && skus(MIN_FIT)) dobra = MIN_FIT;
       if (dobra !== null) {
         let najlepsia = dobra;
-        for (let f = r2(dobra + 0.02); f < dobra + 0.1 && f <= maxFit; f = r2(f + 0.02)) {
+        for (let f = r2(dobra + 0.01); f < dobra + 0.1 && f <= maxFit; f = r2(f + 0.01)) {
           if (!skus(f)) break;
           najlepsia = f;
         }

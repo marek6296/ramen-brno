@@ -1026,18 +1026,13 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
 .board--bez-fotiek .col--wide { padding-left: 1.2vh; padding-right: 1.2vh; }
 
 /* Stredný blok: naplno sa zväčšuje to, čo ľudia čítajú — názov, cena
-   a český popis (pravidlo `.list.twocol:not(.dense)` vyššie). Preklad,
-   štítky a alergény rastú polovičným tempom: plocha je pevná a textu je
-   veľa; keby rástlo všetko rovnako, hlavný text by vyšiel menší. */
+   a český popis (pravidlo `.list.twocol:not(.dense)` vyššie). Anglický
+   popis rastie polovičným tempom. Kalórie, alergény a štítky ostávajú
+   v pôvodnej veľkosti (ako s fotkami) — klienta zaujímajú najmenej a každý
+   ušetrený kúsok miesta ide do písma ramenov. */
 .board--bez-fotiek .list.twocol:not(.dense) .desc { margin-top: calc(0.4vh * var(--fit, 1)); }
 .board--bez-fotiek .list.twocol:not(.dense) .dish .desc-en {
   font-size: calc(var(--desc-en, 1.08vh) * (1 + (var(--fit, 1) - 1) * 0.5));
-}
-.board--bez-fotiek .list.twocol:not(.dense) .dish .meta {
-  font-size: calc(var(--fs-meta) * (1 + (var(--fit, 1) - 1) * 0.5));
-}
-.board--bez-fotiek .list.twocol:not(.dense) .tag {
-  font-size: calc(0.92vh * var(--tag-fit, 1) * (1 + (var(--fit, 1) - 1) * 0.5));
 }
 
 /* Kalórie s alergénmi a za nimi štítky v jednom riadku — v každom riadku
@@ -1108,3 +1103,15 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
 .dish .prazdne { display: none; }
 .board--bez-fotiek .list.twocol .dish .prazdne { display: block; }
 .board--bez-fotiek .list.twocol .dish .prazdne--skryte { display: none; }
+
+/* ---- čitateľnosť na TV (doska bez fotiek) ----
+   Preklady a alergény boli sivé a priesvitné — sýtejšia farba miesto
+   nestojí. Český popis má o stupeň hrubšie písmo (Roboto 500): tenký ťah
+   sa na matnom displeji z 3–4 m rozpíja a šírku to prakticky nemení.
+   Veľkosť alergénov, kalórií a štítkov sa nemení — tie klienta zaujímajú
+   najmenej, miesto patrí ramenom. */
+.board--bez-fotiek .dish .desc { font-weight: 500; }
+.board--bez-fotiek .dish .desc-en { opacity: 1; color: var(--ink-2); }
+.board--bez-fotiek .dish .name-en { opacity: 1; color: var(--ink-2); }
+.board--bez-fotiek .dish .meta--alg { color: var(--ink-2); }
+.board--bez-fotiek .tag__en { opacity: 0.8; }
