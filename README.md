@@ -72,7 +72,8 @@ Detaily:
 Bez fotiek — čistá typografická tabuľa. Fotky jedál sa dajú zapnúť pri
 obrazovke v adminovi (**Fotky jedál v menu**), predvolene sú vypnuté: klient
 ich skúsil a texty boli na TV primalé. Bez fotiek sa písmo samo zväčší
-na najväčšiu veľkosť, aká sa na plochu zmestí. Aby sa prepínač dal uložiť,
+na najväčšiu veľkosť, aká sa na plochu zmestí; stredný blok je širší
+a pri nepárnom počte ramenov ide do voľného slotu výber nudlí. Aby sa prepínač dal uložiť,
 treba v Supabase raz spustiť `supabase/06-fotky-v-menu.sql`; bez nej je
 menu bez fotiek a prepínač sa neuloží. Hlavná adresa `/` je vždy bez fotiek.
 
