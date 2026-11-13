@@ -122,14 +122,20 @@ function DishRow({
         /* eslint-disable-next-line @next/next/no-img-element */
         <img className="photo" src={d.image} alt="" loading="eager" />
       )}
-      <h3 className="name">{d.name}</h3>
+      {/* Obal názvu a prekladu. S fotkami `display: contents` — mriežka jedla
+          je ako predtým; bez fotiek v strede ide preklad hneď za názov, keď
+          sa tam zmestí, a jedlo je o riadok nižšie. Cena má v mriežke pevné
+          miesto (1. riadok), takže na poradí v DOM nezáleží. */}
+      <div className="nazov-riadok">
+        <h3 className="name">{d.name}</h3>
+        {d.nameEn && d.nameEn.toLowerCase() !== d.name.toLowerCase() && (
+          <div className="name-en">{d.nameEn}</div>
+        )}
+      </div>
       <div className="price">
         {d.price}
         <small>{currency}</small>
       </div>
-      {d.nameEn && d.nameEn.toLowerCase() !== d.name.toLowerCase() && (
-        <div className="name-en">{d.nameEn}</div>
-      )}
       <Ingredients parts={d.parts} className="desc" />
       <Ingredients parts={d.partsEn} className="desc-en" />
       {/* 1. riadok: len štítky (Doporučujeme, Novinka, Pálivé, …).
@@ -396,7 +402,7 @@ function FitColumn({
         const zle = () =>
           pretecie() ||
           (strazOrez && (orezane(el, ".desc") || orezane(el, ".desc-en"))) ||
-          (maxFit > 1 && zalomeneCeny(el));
+          (maxFit > 1 && (zalomeneCeny(el) || vycnievaStitok(el)));
         let s = maxFit;
         el.style.setProperty("--fit", String(s));
         while (s > u.spodok && zle()) {
@@ -462,6 +468,16 @@ const zalomeneCeny = (el: HTMLElement) =>
     const cena = li.querySelector<HTMLElement>(".p");
     return !!nazov && !!cena && cena.offsetTop > nazov.offsetTop + 2;
   });
+
+/**
+ * Štítok širší než stĺpec. Riadok štítkov sa v krajných stĺpcoch smie lámať,
+ * ale jeden dlhý štítok („Středně pikantní / Middle spicy") sa zlomiť nedá
+ * a pri väčšom písme by vyčnieval cez okraj stĺpca.
+ */
+const vycnievaStitok = (el: HTMLElement) =>
+  [...el.querySelectorAll<HTMLElement>(".meta")].some(
+    (m) => m.scrollWidth > m.clientWidth + 1,
+  );
 
 /** prvok, ktorému `-webkit-line-clamp` odsekol koniec textu („…") */
 const orezane = (el: HTMLElement, sel: string) =>
@@ -649,10 +665,21 @@ export default function Board({
       .join("|");
   /* 8 ramenov -> 4+4, 7 -> 4+3, 6 -> 3+3, 5 -> 3+2 … presne ako to chce klient */
   const rows = Math.ceil((data.main?.dishes.length ?? 0) / 2) || 1;
+  // Pri nepárnom počte ramenov ostáva v pravej polovici prázdny slot. Bez
+  // fotiek doň ide výber nudlí — patrí ku každému ramenu, takže tam dáva
+  // zmysel, a pravý stĺpec má viac miesta na prídavky a väčšie písmo.
+  const pocet = data.main?.dishes.length ?? 0;
+  const nudleVStrede = !fotky && pocet % 2 === 1 && data.choices.length > 0;
+  const volbaNazovEn = (g: OptionGroup) =>
+    g.nameEn && g.nameEn.trim().toLowerCase() !== g.name.trim().toLowerCase()
+      ? g.nameEn.trim()
+      : undefined;
   const mainRef = useDenseGrid(
     (data.main?.dishes ?? [])
       .map((d) => `${d.id}${d.available ? "" : "!"}${d.labels.length}${texty(d)}`)
-      .join(",") + (fotky ? "|fotky" : ""),
+      .join(",") +
+      (fotky ? "|fotky" : "") +
+      (nudleVStrede ? "|nudle" + data.choices.map((g) => g.items.length).join(",") : ""),
     fotky ? 1 : MAX_FIT_BEZ_FOTIEK,
     setFitStred,
   );
@@ -667,7 +694,8 @@ export default function Board({
   const rightSig =
     sig(data.right) +
     "|" +
-    [...data.choices, ...data.extras].map((g) => g.items.length).join(",");
+    [...data.choices, ...data.extras].map((g) => g.items.length).join(",") +
+    (nudleVStrede ? "|nudle-v-strede" : "");
 
   const c = data.currency;
   const bg = data.place.background;
@@ -759,6 +787,20 @@ export default function Board({
                     }}
                   />
                 ))}
+                {nudleVStrede && (
+                  <div className="volba-v-strede" style={{ gridColumn: 2, gridRow: rows }}>
+                    {data.choices.map((g) => (
+                      <OptionBox
+                        key={g.id}
+                        title={g.name}
+                        titleEn={volbaNazovEn(g)}
+                        groups={[g]}
+                        currency={c}
+                        variant="choice"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -772,20 +814,17 @@ export default function Board({
 
           <div className="addons">
             {/* povinné voľby (napr. výber nudlí) — vlastná sekcia NAD prídavkami */}
-            {data.choices.map((g) => (
-              <OptionBox
-                key={g.id}
-                title={g.name}
-                titleEn={
-                  g.nameEn && g.nameEn.trim().toLowerCase() !== g.name.trim().toLowerCase()
-                    ? g.nameEn.trim()
-                    : undefined
-                }
-                groups={[g]}
-                currency={c}
-                variant="choice"
-              />
-            ))}
+            {!nudleVStrede &&
+              data.choices.map((g) => (
+                <OptionBox
+                  key={g.id}
+                  title={g.name}
+                  titleEn={volbaNazovEn(g)}
+                  groups={[g]}
+                  currency={c}
+                  variant="choice"
+                />
+              ))}
             <OptionBox
               title="PŘÍDAVKY"
               titleEn="Extras — add to any bowl"
