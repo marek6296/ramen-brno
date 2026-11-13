@@ -1103,3 +1103,30 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
    zmenší písmo celej doske (orezaný popis sa ráta ako nezmestený), takže
    nikdy nevznikne „…". */
 .board--bez-fotiek .list.twocol:not(.dense) .desc { -webkit-line-clamp: 3; }
+
+/* Bez fotiek sa popisy neorezávajú cez -webkit-line-clamp: Safari pri ňom
+   kreslí „…" aj za celý text, ktorý sa do posledného riadku presne zmestil.
+   Počet riadkov (v strede najviac 3) stráži board.tsx meraním a pri
+   prekročení zmenší písmo. Skracuje sa len v krajnom stĺpci na poslednej
+   núdzovej úrovni (trieda `skracuj`). */
+.board--bez-fotiek .list.twocol:not(.dense) .desc:not(.prazdne),
+.board--bez-fotiek .list.twocol:not(.dense) .desc-en:not(.prazdne),
+.board--bez-fotiek .col--narrow:not(.skracuj) .desc,
+.board--bez-fotiek .col--narrow:not(.skracuj) .desc-en {
+  display: block;
+  -webkit-line-clamp: none;
+  overflow: visible;
+}
+
+/* Prídavky a voľba nudlí v mriežke: názov | bodkovaná linka | cena,
+   preklad pod tým. Dlhý názov („NIKOGORI (TLAČENKA) V PANKO STROUHANCE")
+   sa zalomí do dvoch riadkov a cena ostane hore vpravo. Predtým sa cena
+   pri dlhom názve odtrhla na ďalší riadok a doska kvôli tomu zmenšila
+   písmo celého pravého stĺpca. */
+.board--bez-fotiek .col--narrow .extras li {
+  display: grid;
+  grid-template-columns: auto minmax(1.2vh, 1fr) auto;
+  column-gap: 0.5vh;
+  align-items: baseline;
+}
+.board--bez-fotiek .col--narrow .extras li .it-en { grid-column: 1 / -1; }
