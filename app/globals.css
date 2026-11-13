@@ -1019,6 +1019,11 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
    menej než rameny. */
 .board--bez-fotiek .cols { grid-template-columns: 0.68fr 3fr 0.76fr; }
 
+/* Text ramenov siaha k čiaram stĺpca na rovnakú vzdialenosť ako k strednej
+   deliacej čiare (polovica medzery medzi polovicami). Predtým bolo pri
+   krajoch dvakrát viac voľna než pri stredovej čiare. */
+.board--bez-fotiek .col--wide { padding-left: 1.2vh; padding-right: 1.2vh; }
+
 /* Stredný blok: naplno sa zväčšuje to, čo ľudia čítajú — názov, cena
    a český popis (pravidlo `.list.twocol:not(.dense)` vyššie). Preklad,
    štítky a alergény rastú polovičným tempom: plocha je pevná a textu je
