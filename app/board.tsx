@@ -407,10 +407,15 @@ function FitColumn({
       for (const u of urovne) {
         el.style.setProperty("--cz-lines", String(u.cz));
         el.style.setProperty("--en-lines", String(u.en));
-        const strazOrez = maxFit > 1 && u !== urovne[urovne.length - 1];
+        const posledna = u === urovne[urovne.length - 1];
+        const strazOrez = maxFit > 1 && !posledna;
+        // Bez fotiek sa skracuje (`-webkit-line-clamp`) len na poslednej
+        // úrovni; inde sa počet riadkov meria — viď `privelaRiadkov`.
+        el.classList.toggle("skracuj", maxFit > 1 && posledna);
         const zle = () =>
           pretecie() ||
-          (strazOrez && (orezane(el, ".desc") || orezane(el, ".desc-en"))) ||
+          (strazOrez &&
+            (privelaRiadkov(el, ".desc", u.cz) || privelaRiadkov(el, ".desc-en", u.en))) ||
           (maxFit > 1 && (zalomeneCeny(el) || vycnievaStitok(el)));
         let s = maxFit;
         el.style.setProperty("--fit", String(s));
@@ -504,6 +509,19 @@ const orezane = (el: HTMLElement, sel: string) =>
     );
   });
 
+/**
+ * Popis s viac riadkami, než je povolené. Bez fotiek sa popisy neorezávajú
+ * cez `-webkit-line-clamp` — Safari pri ňom kreslí „…" aj za celý text,
+ * ktorý sa do posledného riadku presne zmestil. Popis sa tam teda nikdy
+ * neoreže a počet riadkov stráži toto meranie: keď ho niektorý prekročí,
+ * písmo sa zmenší.
+ */
+const privelaRiadkov = (el: HTMLElement, sel: string, max: number) =>
+  [...el.querySelectorAll<HTMLElement>(sel)].some((e) => {
+    const riadok = parseFloat(getComputedStyle(e).lineHeight);
+    return riadok > 0 && e.getBoundingClientRect().height / riadok > max + 0.5;
+  });
+
 /** časti jedla zhora nadol, ktoré musia byť v riadku mriežky na rovnakej výške */
 const CASTI_JEDLA = [".name", ".name-en", ".desc", ".desc-en", ".meta--alg"];
 
@@ -563,14 +581,22 @@ function useDenseGrid(
     const el = ref.current;
     if (!el) return;
 
+    const bezFotiek = maxFit > 1;
+    /** popis, ktorý presahuje svoj počet riadkov (bez fotiek meraním, viď `privelaRiadkov`) */
+    const presahuje = (sel: string) =>
+      bezFotiek ? privelaRiadkov(el, sel, 3) : orezane(el, sel);
+
     /** anglický popis a štítky pri aktuálnej mierke `--fit` */
     const sadzba = () => {
+      // výšky zo súmernej mriežky by skreslili meranie riadkov
+      zarovnajRiadky(el, false);
+
       // 1) Anglický popis čo najväčší, ale stále CELÝ (najviac 3 riadky).
       //    Nezvolíme veľkosť natvrdo: keď klient popis predĺži, doska sa
       //    sama stiahne, namiesto toho aby preklad odsekla.
       let v = MAX_DESC_EN;
       el.style.setProperty("--desc-en", `${v}vh`);
-      while (v > MIN_DESC_EN && orezane(el, ".desc-en")) {
+      while (v > MIN_DESC_EN && presahuje(".desc-en")) {
         v = Math.round((v - 0.03) * 100) / 100;
         el.style.setProperty("--desc-en", `${v}vh`);
       }
@@ -615,8 +641,8 @@ function useDenseGrid(
         const spodok = el.getBoundingClientRect().bottom;
         return (
           ![...el.children].some((c) => c.getBoundingClientRect().bottom > spodok + 1) &&
-          !orezane(el, ".desc") &&
-          !orezane(el, ".desc-en")
+          !presahuje(".desc") &&
+          !presahuje(".desc-en")
         );
       };
 
