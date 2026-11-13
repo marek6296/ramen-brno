@@ -996,10 +996,24 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
    má vlastné meranie. S fotkami (prepínač v adminovi) sa nič z tohto
    nepoužije a doska vyzerá presne ako predtým. */
 
-/* Hlavička o kúsok nižšia — každý ušetrený riadok ide jedlám. */
-.board--bez-fotiek .top { padding: 0.7vh 3vh 0.6vh; }
-.board--bez-fotiek .brand .logo { height: 7.6vh; }
-.board--bez-fotiek .menu-title { font-size: 4.4vh; }
+/* Hlavička nižšia — každý ušetrený riadok ide jedlám. */
+.board--bez-fotiek .top { padding: 0.5vh 3vh 0.4vh; }
+.board--bez-fotiek .brand .logo { height: 6.4vh; }
+.board--bez-fotiek .menu-title { font-size: 3.8vh; }
+
+/* Riadok s nadpismi stĺpcov (CHUŤOVKY · RAMEN · DĚTSKÉ JÍDLO) nižší a vo
+   všetkých troch stĺpcoch PEVNE rovnako vysoký, aby čiary pod nadpismi
+   ležali na jednej línii. Predtým mali len spoločnú minimálnu výšku a väčší
+   nadpis RAMEN ju potichu prekročil — jeho čiara bola o kúsok nižšie. */
+.board--bez-fotiek .col { padding-top: 0.9vh; }
+.board--bez-fotiek .col > .sec:first-child {
+  height: 3.9vh;
+  min-height: 0;
+  align-items: flex-end;
+  padding-bottom: 0.45vh;
+  overflow: hidden;
+}
+.board--bez-fotiek .sec--center h2 { font-size: 2.7vh; }
 
 /* Stredný blok dostane šírku z krajov — chuťovky a prídavky ju potrebujú
    menej než rameny. */
@@ -1020,27 +1034,19 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
   font-size: calc(0.92vh * var(--tag-fit, 1) * (1 + (var(--fit, 1) - 1) * 0.5));
 }
 
-/* Kalórie a alergény idú na riadok so štítkami, keď sa tam zmestia —
-   jedlo je tak o riadok nižšie. Keď nie, board.tsx dá jedlu triedu
-   `dish--alg-zvlast` a alergény ostanú na vlastnom riadku ako predtým.
+/* Kalórie s alergénmi navrch, štítky pod ne — v každom riadku mriežky
+   na rovnakej výške vľavo aj vpravo (`zarovnajRiadky` v board.tsx).
    Mimo tohto režimu obal neexistuje (`display: contents`). */
 .meta-riadok { display: contents; }
 .board--bez-fotiek .list.twocol .meta-riadok {
   grid-column: 1 / -1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  column-gap: 1.2vh;
-  min-width: 0;
-}
-.board--bez-fotiek .list.twocol .meta-riadok .meta { min-width: 0; flex: 0 1 auto; }
-.board--bez-fotiek .list.twocol .meta-riadok .meta--alg { flex: none; white-space: nowrap; }
-.board--bez-fotiek .list.twocol .dish--alg-zvlast .meta-riadok {
   flex-direction: column;
   align-items: flex-start;
+  min-width: 0;
 }
-/* jedlo bez štítkov: alergény zostanú vľavo, nie odsunuté doprava */
-.board--bez-fotiek .list.twocol .meta-riadok .meta--alg:first-child { margin-right: auto; }
+.board--bez-fotiek .list.twocol .meta-riadok .meta { max-width: 100%; }
+.board--bez-fotiek .list.twocol .meta-riadok .meta--alg { order: -1; }
 
 /* Krajné stĺpce — jedlá. Mierku obmedzuje board.tsx tak, aby chuťovky
    nikdy neboli väčšie než rameny v strede. */
@@ -1065,32 +1071,6 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
 .board--bez-fotiek .col--narrow .extras .it-en { font-size: calc(0.88vh * var(--fit, 1)); }
 .board--bez-fotiek .col--narrow .it-en__incl   { font-size: calc(0.85vh * var(--fit, 1)); }
 
-/* Výber nudlí v prázdnom slote ramenov (nepárny počet, len bez fotiek).
-   Je v strednom bloku, tak má aj jeho mierku — o rovnaký pomer väčší
-   než v krajnom stĺpci (~1,19), ako jedlá. */
-.volba-v-strede { align-self: start; }
-.volba-v-strede .extras { margin: 0; }
-.volba-v-strede .extras h3     { font-size: calc(2vh * var(--fit, 1)); }
-.volba-v-strede .extras .en-h  { font-size: calc(1.13vh * var(--fit, 1)); }
-.volba-v-strede .extras li     { font-size: calc(1.45vh * var(--fit, 1)); }
-.volba-v-strede .extras .it-en { font-size: calc(1.05vh * var(--fit, 1)); }
-.volba-v-strede .it-en__incl   { font-size: calc(1vh * var(--fit, 1)); }
-
-/* Anglický názov hneď za českým, keď sa tam zmestí (len bez fotiek, v strede).
-   Pri krátkych názvoch (KATSU KARI · KATSU CURRY) je jedlo o riadok nižšie;
-   dlhý preklad sa sám zalomí na vlastný riadok ako predtým. S fotkami
-   a v krajných stĺpcoch obal neexistuje (`display: contents`). */
-.nazov-riadok { display: contents; }
-.board--bez-fotiek .list.twocol .nazov-riadok {
-  grid-column: 1;
-  grid-row: 1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  column-gap: 1.6vh;
-  min-width: 0;
-}
-
 /* Pravý stĺpec: box s prídavkami vyplní celú výšku pod dětským jídlom
    a položky sa v ňom rozostúpia. Inak by medzi jedlom a prídavkami ostalo
    prázdne miesto — stĺpec je obmedzený šírkou (dlhé názvy prídavkov
@@ -1110,3 +1090,10 @@ body.idle .fsbtn { opacity: 0; pointer-events: none; }
   flex: 1 1 auto;
   align-content: space-evenly;
 }
+
+/* Prázdne miesto za chýbajúcu časť jedla (preklad, popis, alergény) —
+   existuje len v strede bez fotiek, kde drží mriežku súmernú (viď
+   `zarovnajRiadky` v board.tsx). */
+.dish .prazdne { display: none; }
+.board--bez-fotiek .list.twocol .dish .prazdne { display: block; }
+.board--bez-fotiek .list.twocol .dish .prazdne--skryte { display: none; }

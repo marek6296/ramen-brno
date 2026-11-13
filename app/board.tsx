@@ -122,29 +122,36 @@ function DishRow({
         /* eslint-disable-next-line @next/next/no-img-element */
         <img className="photo" src={d.image} alt="" loading="eager" />
       )}
-      {/* Obal názvu a prekladu. S fotkami `display: contents` — mriežka jedla
-          je ako predtým; bez fotiek v strede ide preklad hneď za názov, keď
-          sa tam zmestí, a jedlo je o riadok nižšie. Cena má v mriežke pevné
-          miesto (1. riadok), takže na poradí v DOM nezáleží. */}
-      <div className="nazov-riadok">
-        <h3 className="name">{d.name}</h3>
-        {d.nameEn && d.nameEn.toLowerCase() !== d.name.toLowerCase() && (
-          <div className="name-en">{d.nameEn}</div>
-        )}
-      </div>
+      <h3 className="name">{d.name}</h3>
       <div className="price">
         {d.price}
         <small>{currency}</small>
       </div>
-      <Ingredients parts={d.parts} className="desc" />
-      <Ingredients parts={d.partsEn} className="desc-en" />
+      {d.nameEn && d.nameEn.toLowerCase() !== d.name.toLowerCase() ? (
+        <div className="name-en">{d.nameEn}</div>
+      ) : (
+        /* Prázdne miesto namiesto chýbajúcej časti. Bez fotiek drží v strede
+           ďalšie časti jedla na rovnakej výške ako u suseda v tom istom
+           riadku (viď `zarovnajRiadky`); inde sa nezobrazuje. */
+        <div className="name-en prazdne" aria-hidden="true" />
+      )}
+      {d.parts.length ? (
+        <Ingredients parts={d.parts} className="desc" />
+      ) : (
+        <p className="desc prazdne" aria-hidden="true" />
+      )}
+      {d.partsEn.length ? (
+        <Ingredients parts={d.partsEn} className="desc-en" />
+      ) : (
+        <p className="desc-en prazdne" aria-hidden="true" />
+      )}
       {/* 1. riadok: len štítky (Doporučujeme, Novinka, Pálivé, …).
           Vypredané tu ZÁMERNE nemá vlastný štítok — pridával štvrtý prvok,
           riadok sa zalomil a jedlo prerástlo svoj slot cez susedné. Že je
           vypredané, povie prečiarknutý názov aj cena, stlmenie a šedá fotka. */}
       {/* Obal oboch riadkov. S fotkami má `display: contents` a riadky sú
-          v mriežke jedla ako predtým; bez fotiek ich v strede postaví vedľa
-          seba, aby jedlo bolo o riadok nižšie (viď globals.css). */}
+          v mriežke jedla ako predtým; bez fotiek v strede idú kalórie
+          s alergénmi navrch a štítky pod ne (viď globals.css). */}
       <div className="meta-riadok">
         {d.labels.length > 0 && (
           <div className="meta">
@@ -153,11 +160,13 @@ function DishRow({
         )}
         {/* 2. riadok: kalórie a alergény vždy spolu a vždy zvlášť — inak sa raz
             zalomia a raz nie, podľa toho, koľko štítkov je nad nimi */}
-        {(d.kcal || d.allergens.length > 0) && (
+        {d.kcal || d.allergens.length > 0 ? (
           <div className="meta meta--alg">
             {d.kcal ? <span>{d.kcal} kcal</span> : null}
             {d.allergens.length ? <span>alerg. {d.allergens.join(", ")}</span> : null}
           </div>
+        ) : (
+          <div className="meta meta--alg prazdne" aria-hidden="true" />
         )}
       </div>
     </article>
@@ -480,10 +489,66 @@ const vycnievaStitok = (el: HTMLElement) =>
   );
 
 /** prvok, ktorému `-webkit-line-clamp` odsekol koniec textu („…") */
+//
+// Nespolieha sa len na `scrollHeight`: Safari pri `-webkit-line-clamp` hlási
+// výšku už orezanú, takže by „…" nespoznal a doska by ostala pri väčšom písme
+// s useknutým popisom. Preto sa pozerá aj na to, kde leží posledná zložka
+// popisu — skryté riadky sú rozložené pod okrajom aj tam.
 const orezane = (el: HTMLElement, sel: string) =>
-  [...el.querySelectorAll<HTMLElement>(sel)].some(
-    (e) => e.scrollHeight > e.clientHeight + 1,
+  [...el.querySelectorAll<HTMLElement>(sel)].some((e) => {
+    if (e.scrollHeight > e.clientHeight + 1) return true;
+    const posledna = e.lastElementChild;
+    return (
+      !!posledna &&
+      posledna.getBoundingClientRect().bottom > e.getBoundingClientRect().bottom + 1
+    );
+  });
+
+/** časti jedla zhora nadol, ktoré musia byť v riadku mriežky na rovnakej výške */
+const CASTI_JEDLA = [".name", ".name-en", ".desc", ".desc-en", ".meta--alg"];
+
+/**
+ * Súmerná mriežka ramenov (len bez fotiek): v každom riadku má jedlo vľavo
+ * aj vpravo každú časť — názov, preklad, popis, anglický popis, kalórie
+ * s alergénmi — rovnako vysokú, takže všetko začína na tej istej výške
+ * a štítky sú pod tým. Keď jednému jedlu časť chýba, drží jej miesto prázdny
+ * prvok; keď ju nemá ani jedno, skryje sa. S fotkami sa len zruší, čo tu
+ * ostalo z režimu bez fotiek.
+ */
+function zarovnajRiadky(el: HTMLElement, zarovnaj: boolean) {
+  const jedla = [...el.children].filter((c): c is HTMLElement =>
+    c.classList.contains("dish"),
   );
+  for (const d of jedla) {
+    for (const sel of CASTI_JEDLA) {
+      const e = d.querySelector<HTMLElement>(sel);
+      e?.style.removeProperty("min-height");
+      e?.classList.remove("prazdne--skryte");
+    }
+  }
+  if (!zarovnaj) return;
+
+  const riadky = new Map<string, HTMLElement[]>();
+  for (const d of jedla) {
+    const r = d.style.gridRow;
+    riadky.set(r, [...(riadky.get(r) ?? []), d]);
+  }
+  // Zhora nadol: výška časti sa meria až po zarovnaní tých nad ňou.
+  for (const skupina of riadky.values()) {
+    for (const sel of CASTI_JEDLA) {
+      const casti = skupina
+        .map((d) => d.querySelector<HTMLElement>(sel))
+        .filter((e): e is HTMLElement => !!e);
+      const skutocne = casti.filter((e) => !e.classList.contains("prazdne"));
+      if (!skutocne.length) {
+        for (const e of casti) e.classList.add("prazdne--skryte");
+        continue;
+      }
+      const vyska = Math.max(...skutocne.map((e) => e.getBoundingClientRect().height));
+      for (const e of casti) e.style.setProperty("min-height", `${vyska}px`);
+    }
+  }
+}
 
 function useDenseGrid(
   signature: string,
@@ -510,6 +575,10 @@ function useDenseGrid(
         el.style.setProperty("--desc-en", `${v}vh`);
       }
 
+      // Súmerná mriežka — časti jedla sa menia s písmom, preto pri každej
+      // mierke, a až keď je známa veľkosť anglického popisu.
+      zarovnajRiadky(el, maxFit > 1);
+
       // 2) Štítky vždy na JEDEN riadok. Tretí štítok by sa inak zalomil, jedlo
       //    by narástlo a tlačilo to pod sebou. Meria sa každý riadok zvlášť —
       //    jedlá majú rôzne dlhé štítky, spoločná veľkosť by zbytočne zmenšila
@@ -527,13 +596,6 @@ function useDenseGrid(
 
         m.style.flexWrap = "";
         m.style.removeProperty("--tag-fit");
-
-        // Bez fotiek idú kalórie a alergény na riadok so štítkami (CSS).
-        // Keď sa štítky vedľa nich nezmestia v plnej veľkosti, vrátia sa
-        // alergény na vlastný riadok — štítky sa kvôli nim nezmenšujú.
-        const jedlo = m.closest(".dish");
-        jedlo?.classList.remove("dish--alg-zvlast");
-        if (pretecie()) jedlo?.classList.add("dish--alg-zvlast");
 
         // Preklad ostáva vždy — zmenší sa celý štítok aj s ním.
         zmensuj(MIN_TAG_FIT);
@@ -665,11 +727,6 @@ export default function Board({
       .join("|");
   /* 8 ramenov -> 4+4, 7 -> 4+3, 6 -> 3+3, 5 -> 3+2 … presne ako to chce klient */
   const rows = Math.ceil((data.main?.dishes.length ?? 0) / 2) || 1;
-  // Pri nepárnom počte ramenov ostáva v pravej polovici prázdny slot. Bez
-  // fotiek doň ide výber nudlí — patrí ku každému ramenu, takže tam dáva
-  // zmysel, a pravý stĺpec má viac miesta na prídavky a väčšie písmo.
-  const pocet = data.main?.dishes.length ?? 0;
-  const nudleVStrede = !fotky && pocet % 2 === 1 && data.choices.length > 0;
   const volbaNazovEn = (g: OptionGroup) =>
     g.nameEn && g.nameEn.trim().toLowerCase() !== g.name.trim().toLowerCase()
       ? g.nameEn.trim()
@@ -677,9 +734,7 @@ export default function Board({
   const mainRef = useDenseGrid(
     (data.main?.dishes ?? [])
       .map((d) => `${d.id}${d.available ? "" : "!"}${d.labels.length}${texty(d)}`)
-      .join(",") +
-      (fotky ? "|fotky" : "") +
-      (nudleVStrede ? "|nudle" + data.choices.map((g) => g.items.length).join(",") : ""),
+      .join(",") + (fotky ? "|fotky" : ""),
     fotky ? 1 : MAX_FIT_BEZ_FOTIEK,
     setFitStred,
   );
@@ -694,8 +749,7 @@ export default function Board({
   const rightSig =
     sig(data.right) +
     "|" +
-    [...data.choices, ...data.extras].map((g) => g.items.length).join(",") +
-    (nudleVStrede ? "|nudle-v-strede" : "");
+    [...data.choices, ...data.extras].map((g) => g.items.length).join(",");
 
   const c = data.currency;
   const bg = data.place.background;
@@ -787,20 +841,6 @@ export default function Board({
                     }}
                   />
                 ))}
-                {nudleVStrede && (
-                  <div className="volba-v-strede" style={{ gridColumn: 2, gridRow: rows }}>
-                    {data.choices.map((g) => (
-                      <OptionBox
-                        key={g.id}
-                        title={g.name}
-                        titleEn={volbaNazovEn(g)}
-                        groups={[g]}
-                        currency={c}
-                        variant="choice"
-                      />
-                    ))}
-                  </div>
-                )}
               </div>
             </>
           )}
@@ -814,17 +854,16 @@ export default function Board({
 
           <div className="addons">
             {/* povinné voľby (napr. výber nudlí) — vlastná sekcia NAD prídavkami */}
-            {!nudleVStrede &&
-              data.choices.map((g) => (
-                <OptionBox
-                  key={g.id}
-                  title={g.name}
-                  titleEn={volbaNazovEn(g)}
-                  groups={[g]}
-                  currency={c}
-                  variant="choice"
-                />
-              ))}
+            {data.choices.map((g) => (
+              <OptionBox
+                key={g.id}
+                title={g.name}
+                titleEn={volbaNazovEn(g)}
+                groups={[g]}
+                currency={c}
+                variant="choice"
+              />
+            ))}
             <OptionBox
               title="PŘÍDAVKY"
               titleEn="Extras — add to any bowl"
