@@ -74,8 +74,8 @@ obrazovke v adminovi (**Fotky jedál v menu**), predvolene sú vypnuté: klient
 ich skúsil a texty boli na TV primalé. Bez fotiek sa písmo samo zväčší
 na najväčšiu veľkosť, aká sa na plochu zmestí; stredný blok je širší
 a mriežka ramenov je súmerná — názov, preklad, popis, anglický popis
-aj kalórie s alergénmi sú vľavo aj vpravo na rovnakej výške, štítky pod
-nimi; čo jedlu chýba, ostane prázdne. Aby sa prepínač dal uložiť,
+aj kalórie s alergénmi sú vľavo aj vpravo na rovnakej výške, štítky
+v riadku za nimi (čo sa nezmestí, zalomí sa); čo jedlu chýba, ostane prázdne. Aby sa prepínač dal uložiť,
 treba v Supabase raz spustiť `supabase/06-fotky-v-menu.sql`; bez nej je
 menu bez fotiek a prepínač sa neuloží. Hlavná adresa `/` je vždy bez fotiek.
 
