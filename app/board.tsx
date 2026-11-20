@@ -573,6 +573,8 @@ function useDenseGrid(
   maxFit = 1,
   /** dostane výslednú mierku stredného bloku (v hustej sadzbe 1) */
   naFit?: (fit: number) => void,
+  /** bez fotiek: najviac riadkov popisu (český aj anglický) */
+  maxRiadkov = 3,
 ) {
   const ref = useRef<HTMLDivElement>(null);
   const naFitRef = useRef(naFit);
@@ -584,7 +586,7 @@ function useDenseGrid(
     const bezFotiek = maxFit > 1;
     /** popis, ktorý presahuje svoj počet riadkov (bez fotiek meraním, viď `privelaRiadkov`) */
     const presahuje = (sel: string) =>
-      bezFotiek ? privelaRiadkov(el, sel, 3) : orezane(el, sel);
+      bezFotiek ? privelaRiadkov(el, sel, maxRiadkov) : orezane(el, sel);
 
     /** anglický popis a štítky pri aktuálnej mierke `--fit` */
     const sadzba = () => {
@@ -689,7 +691,7 @@ function useDenseGrid(
     document.fonts?.ready.then(meraj).catch(() => {});
     window.addEventListener("resize", meraj);
     return () => window.removeEventListener("resize", meraj);
-  }, [signature, maxFit]);
+  }, [signature, maxFit, maxRiadkov]);
   return ref;
 }
 
@@ -763,6 +765,11 @@ export default function Board({
       .join(",") + (fotky ? "|fotky" : ""),
     fotky ? 1 : MAX_FIT_BEZ_FOTIEK,
     setFitStred,
+    // Pri plnom menu (4 rady ramenov) najviac 3 riadky popisu — štvrtý rozbíjal
+    // súmernosť. Keď je ramenov menej (súkromná akcia: 2 rameny v jednom
+    // rade), je pod nimi kopa miesta a strop 3 riadkov by zbytočne stlačil
+    // písmo: dlhý popis by sa do troch riadkov zmestil len drobný.
+    Math.max(3, 7 - rows),
   );
   // Chuťovky a dětské jídlo nesmú byť väčšie než rameny — tie sú to hlavné.
   // Krajné stĺpce majú základné písmo menšie v pomere ~1 : 1,19 (názov
