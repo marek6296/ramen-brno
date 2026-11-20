@@ -224,14 +224,14 @@ export async function getMenu(): Promise<MenuData> {
     toDish(m, enById[m._id], cats[m.category] ?? "")
   );
 
-  // ---- rozloženie do stĺpcov, BEZ závislosti na názvoch kategórií ----
+  // ---- rozloženie do stĺpcov ----
   //
   // Klient si môže kategórie v ChoiceQR kedykoľvek premenovať, pridať alebo
-  // zmazať. Preto sa na názvy vôbec nespoliehame — pracujeme len s tým,
-  // čo API vráti, a v pôvodnom poradí z admina (klient si ho tam ťahá myšou):
-  //   - najväčšia kategória  -> dva stredné stĺpce (u nich RAMEN)
-  //   - ostatné              -> rozdelené medzi ľavý a pravý krajný stĺpec
-  //                             tak, aby boli podobne plné
+  // zmazať. Pracujeme preto s tým, čo API vráti, v pôvodnom poradí z admina
+  // (klient si ho tam ťahá myšou):
+  //   - RAMEN (podľa názvu; inak najväčšia kategória) -> stredný blok
+  //   - ostatné -> rozdelené medzi ľavý a pravý krajný stĺpec
+  //                tak, aby boli podobne plné
   const enCatById: Record<string, string> = {};
   for (const c of en?.categories ?? []) enCatById[c._id] = c.name;
 
@@ -244,11 +244,18 @@ export async function getMenu(): Promise<MenuData> {
     }))
     .filter((g: Group) => g.dishes.length > 0);
 
-  // najväčšia kategória ide do stredu
-  const mainGroup =
-    groups.length > 0
-      ? groups.reduce((a, b) => (b.dishes.length > a.dishes.length ? b : a))
+  // Do stredu idú RAMENY. Pôvodne tam išla jednoducho najväčšia kategória,
+  // lenže keď klient ramenov zúžil (súkromná akcia: 2 rameny, 3 chuťovky),
+  // chuťovky sa presunuli do stredu a rameny na kraj — a s nimi zmizli aj
+  // NUDLE a PŘÍDAVKY, lebo tie sa ukazujú len pri jedlách v strede.
+  // Kategóriu ramenov preto spoznáme podľa názvu (aj anglického); najväčšia
+  // kategória je len záloha, keby sa žiadna tak nevolala.
+  const najvacsia = (gs: Group[]) =>
+    gs.length > 0
+      ? gs.reduce((a, b) => (b.dishes.length > a.dishes.length ? b : a))
       : null;
+  const jeRamen = (g: Group) => /r[aá]men/i.test(`${g.name} ${g.nameEn ?? ""}`);
+  const mainGroup = najvacsia(groups.filter(jeRamen)) ?? najvacsia(groups);
 
   const rest = groups.filter((g) => g !== mainGroup);
   const catOrder = new Map(groups.map((g, i) => [g.id, i]));
